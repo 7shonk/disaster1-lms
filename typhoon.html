@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>颱洪整備教室 - LMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .gradient-text {
+            background: linear-gradient(to right, #2dd4bf, #0ea5e9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .no-select {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .sidebar-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-white min-h-screen flex flex-col md:flex-row font-sans antialiased overflow-x-hidden">
+
+    <div
+        class="md:hidden w-full bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between no-select">
+        <div class="flex items-center gap-3">
+            <button onclick="setSidebarState(true)"
+                class="p-1.5 rounded-lg bg-slate-800 text-gray-300 hover:text-white cursor-pointer transition">
+                <span class="text-base font-bold block w-6 text-center">☰</span>
+            </button>
+            <div class="flex items-center gap-2 font-bold text-sm">
+                <span class="text-lg">🛡️</span>
+                <span class="text-blue-400 font-black">防災學習 LMS</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="sidebarOverlay" onclick="setSidebarState(false)"
+        class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
+
+    <aside id="sidebarNav"
+        class="fixed md:relative inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col shrink-0 no-select sidebar-transition z-50 -translate-x-full md:translate-x-0 shadow-2xl md:shadow-none">
+
+        <div class="flex items-center justify-between mb-6 pb-2 border-b border-slate-800/50">
+            <div id="sidebarTitle"
+                class="flex items-center gap-2 font-bold text-base overflow-hidden whitespace-nowrap pl-1 sidebar-transition opacity-100">
+                <span class="text-xl">🛡️</span>
+                <span class="text-blue-400 font-black">防災學習 LMS</span>
+            </div>
+            <button onclick="toggleSidebar()"
+                class="p-1.5 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition cursor-pointer"
+                title="收起/展開選單">
+                <span id="toggleBtnIcon" class="text-lg font-bold block w-6 text-center">✕</span>
+            </button>
+        </div>
+
+        <nav class="space-y-4 flex-1 overflow-y-auto pr-1" id="sidebarMenu">
+            <div>
+                <div
+                    class="sidebar-text text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 pl-2 sidebar-transition">
+                    主選單</div>
+                <a href="index.html"
+                    class="flex items-center gap-4 text-gray-400 hover:text-white p-2.5 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                    <span class="text-lg shrink-0">🏠</span><span
+                        class="sidebar-text text-sm sidebar-transition">學習中控大廳</span>
+                </a>
+            </div>
+            <div>
+                <div
+                    class="sidebar-text text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 pl-2 sidebar-transition">
+                    實體備料</div>
+                <a href="calculator.html"
+                    class="flex items-center gap-4 text-gray-400 hover:text-purple-400 p-2.5 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                    <span class="text-lg shrink-0">🧮</span><span
+                        class="sidebar-text text-sm sidebar-transition">智慧物資準備</span>
+                </a>
+            </div>
+            <div>
+                <div
+                    class="sidebar-text text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 pl-2 sidebar-transition">
+                    核心災害教室</div>
+                <div class="space-y-1">
+                    <a href="earthquake.html"
+                        class="flex items-center gap-4 text-gray-400 hover:text-blue-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2"><span
+                            class="text-lg shrink-0">🫨</span><span
+                            class="sidebar-text text-sm sidebar-transition">地震應變教室</span></a>
+                    <a href="#"
+                        class="flex items-center gap-4 text-teal-400 bg-teal-950/40 p-2 rounded-xl border border-teal-900/30 whitespace-nowrap pl-2">
+                        <span class="text-lg shrink-0">🌀</span><span
+                            class="sidebar-text text-sm font-bold sidebar-transition">颱洪整備教室</span>
+                    </a>
+                    <a href="fire.html"
+                        class="flex items-center gap-4 text-gray-400 hover:text-red-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2"><span
+                            class="text-lg shrink-0">🔥</span><span
+                            class="sidebar-text text-sm sidebar-transition">火災安全逃生</span></a>
+                </div>
+            </div>
+            <div>
+                <div
+                    class="sidebar-text text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 pl-2 sidebar-transition">
+                    生活安全教室</div>
+                <div class="space-y-1">
+                    <a href="home-safety.html"
+                        class="flex items-center gap-4 text-gray-400 hover:text-yellow-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                        <span class="text-lg shrink-0">🚪</span><span
+                            class="sidebar-text text-sm sidebar-transition">居家綜合安全</span>
+                    </a>
+                    <a href="first-aid.html"
+                        class="flex items-center gap-4 text-gray-400 hover:text-emerald-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                        <span class="text-lg shrink-0">🚑</span><span
+                            class="sidebar-text text-sm sidebar-transition">民眾急救自救</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="border-t border-slate-800 pt-4 mt-auto overflow-hidden" id="sidebarFooter">
+            <div id="userEmailDisplay"
+                class="sidebar-text text-xs text-gray-400 mb-3 whitespace-nowrap overflow-hidden text-ellipsis pl-2 sidebar-transition">
+                🎓 學生：讀取中...</div>
+            <button onclick="logout()"
+                class="w-full text-left text-red-400 hover:text-red-300 text-sm font-bold flex items-center gap-4 p-2.5 rounded-xl transition pl-2 hover:bg-red-500/10">
+                <span class="text-lg shrink-0">🚪</span>
+                <span class="sidebar-text sidebar-transition">登出系統</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col min-h-screen">
+
+        <main class="flex-1 p-6 md:p-10 w-full">
+            <div class="max-w-4xl mx-auto w-full">
+
+                <header
+                    class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 md:px-0">
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-black mb-1 gradient-text">🌀 颱洪災害整備教室</h1>
+                        <p class="text-gray-400 text-[11px] md:text-xs">專攻防颱整備、土石流警戒與強制撤離前置作業。</p>
+                    </div>
+                    <span
+                        class="bg-teal-950 text-teal-400 text-[10px] md:text-xs px-3 py-1 rounded-full font-bold border border-teal-900/50 no-select whitespace-nowrap">颱洪災害防救手冊對齊</span>
+                </header>
+
+                <div
+                    class="bg-slate-900 p-5 md:p-6 rounded-2xl border border-slate-800 shadow-xl mb-6 flex flex-col md:flex-row gap-6 items-center">
+                    <div class="flex-1">
+                        <h2 class="text-md font-bold text-gray-200 mb-2">📖 課本參閱：防颱整備指引</h2>
+                        <p class="text-xs text-gray-400 leading-relaxed mb-2">
+                            颱風常伴隨強風與豪雨。重點在於事前清理排水溝、固定門窗，若居住於土石流潛勢區，須配合政府實施預防性撤離。
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span
+                                class="bg-slate-950 text-[11px] text-gray-400 px-3 py-1 rounded-lg border border-slate-800">📌
+                                參閱資料：《颱洪災害防救手冊.pdf》</span>
+                        </div>
+                    </div>
+                    <a href="files/防災宣導教學手冊-颱洪災害防救-new.pdf" target="_blank"
+                        class="w-full md:w-auto bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 px-5 rounded-xl transition-all flex justify-center items-center gap-2 group cursor-pointer border border-teal-400 text-sm whitespace-nowrap">
+                        <span class="text-xl">📘</span> 開啟防颱課本
+                    </a>
+                </div>
+
+                <div class="bg-slate-900 p-5 md:p-6 rounded-2xl border border-slate-800 shadow-xl mb-6">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4 no-select">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">🛡️
+                            訓練一：防颱前夕整備清單</h3>
+                        <span id="typhoonScoreBadge"
+                            class="bg-teal-950 text-teal-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-teal-900/40">安全防禦度：0%</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-4">請實地檢查居家四周環境，做好各項防風防淹準備：</p>
+
+                    <div class="grid grid-cols-1 gap-3">
+                        <label
+                            class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox" onchange="calculateTyphoonScore()"
+                                class="ty-check w-5 h-5 rounded border-slate-700 bg-slate-800 text-teal-500 focus:ring-0 cursor-pointer">
+                            <div class="flex-1 min-w-0">
+                                <span class="text-gray-300 text-sm font-bold block">固定陽台盆栽與懸掛物</span>
+                                <span class="text-xs text-gray-500 block mt-0.5">花盆、花架已移至室內地板，招牌或陽台懸掛物已補強牢固。</span>
+                            </div>
+                        </label>
+
+                        <label
+                            class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox" onchange="calculateTyphoonScore()"
+                                class="ty-check w-5 h-5 rounded border-slate-700 bg-slate-800 text-teal-500 focus:ring-0 cursor-pointer">
+                            <div class="flex-1 min-w-0">
+                                <span class="text-gray-300 text-sm font-bold block">清理住家排水溝與落水孔</span>
+                                <span class="text-xs text-gray-500 block mt-0.5">屋頂、陽台以及家門口的排水孔、水溝落葉和雜物已清除，防範積水。</span>
+                            </div>
+                        </label>
+
+                        <label
+                            class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox" onchange="calculateTyphoonScore()"
+                                class="ty-check w-5 h-5 rounded border-slate-700 bg-slate-800 text-teal-500 focus:ring-0 cursor-pointer">
+                            <div class="flex-1 min-w-0">
+                                <span class="text-gray-300 text-sm font-bold block">確認窗戶氣密性與迎風面防護</span>
+                                <span class="text-xs text-gray-500 block mt-0.5">窗戶卡榫鎖緊，迎風面大玻璃張貼防爆膜或透明防爆膠帶防止碎裂飛散。</span>
+                            </div>
+                        </label>
+
+                        <label
+                            class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox" onchange="calculateTyphoonScore()"
+                                class="ty-check w-5 h-5 rounded border-slate-700 bg-slate-800 text-teal-500 focus:ring-0 cursor-pointer">
+                            <div class="flex-1 min-w-0">
+                                <span class="text-gray-300 text-sm font-bold block">備妥應急照明與防災收音機</span>
+                                <span
+                                    class="text-xs text-gray-500 block mt-0.5">備用手電筒功能正常、行動電源充滿，收音機已準備好防範災性斷電斷網。</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div id="typhoonSyncStatus"
+                        class="hidden mt-4 p-3 bg-teal-950/20 border border-teal-900/30 rounded-xl text-center text-xs text-teal-400">
+                        🚀 [資料庫同步] 居家防颱整備進度已寫入雲端！
+                    </div>
+
+
+                </div>
+
+                <!-- AI 智慧安檢結果區 -->
+                <div id="aiScanResultArea"
+                    class="hidden bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl mb-6">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4 no-select">
+                        <h3 class="text-md font-bold text-teal-400 flex items-center gap-2">📸 AI 防颱整備安檢鏡頭結果</h3>
+                        <span id="aiScanScoreBadge"
+                            class="bg-teal-950 text-teal-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-teal-900/40">整備度：0%</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-4">
+                        <div class="lg:col-span-2 bg-slate-950/40 border border-slate-800/80 p-5 rounded-xl">
+                            <h4 class="text-sm font-bold text-teal-400 mb-2 flex items-center gap-1.5">💡 AI 即時專家優化建議
+                            </h4>
+                            <p id="aiFeedbackText" class="text-xs text-gray-300 leading-relaxed italic"></p>
+                        </div>
+                        <div class="lg:col-span-1 space-y-4">
+                            <div class="bg-red-950/10 border border-red-900/30 p-4 rounded-xl">
+                                <span class="text-[10px] font-bold text-red-400 block mb-2">❌ 缺失準備</span>
+                                <div id="missingItemsList" class="text-xs text-gray-300 space-y-1.5"></div>
+                            </div>
+                            <div class="bg-teal-950/10 border border-teal-900/30 p-4 rounded-xl">
+                                <span class="text-[10px] font-bold text-teal-400 block mb-2">⚠️ 安全隱患</span>
+                                <div id="overstockedItemsList" class="text-xs text-gray-300 space-y-1.5"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl mb-6">
+                    <h3 class="text-md font-bold text-teal-400 mb-2 flex items-center gap-2">💬 訓練二：防颱文本 AI 智能詢問區</h3>
+                    <div class="space-y-4">
+                        <textarea id="userInquiryInput" rows="3"
+                            class="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl p-4 text-sm text-gray-200 placeholder-gray-600 transition outline-none"
+                            placeholder="例如輸入：『窗戶貼膠帶有用嗎？』..."></textarea>
+                        <button onclick="submitInquiry()" id="sendInquiryBtn"
+                            class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 px-6 rounded-xl transition text-xs shadow-lg flex items-center gap-2 cursor-pointer">
+                            <span>💬</span> 送出詢問 AI 導師
+                        </button>
+                    </div>
+                    <div id="inquiryResponseBox"
+                        class="hidden mt-6 p-5 bg-slate-950 border border-slate-800 rounded-xl">
+                        <div class="flex items-center gap-2 mb-3 no-select">
+                            <span
+                                class="bg-teal-500/20 text-teal-400 text-[10px] font-bold px-2 py-0.5 rounded border border-teal-500/30">🤖
+                                文本導讀回饋</span>
+                            <span id="inquiryTime" class="text-[10px] text-gray-600">剛剛</span>
+                        </div>
+                        <p id="inquiryResponseText" class="text-xs text-gray-300 leading-relaxed whitespace-pre-line">
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-5 md:p-6 rounded-2xl border border-slate-800 shadow-xl">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4 no-select">
+                        <h3 class="text-md font-bold text-teal-400 flex items-center gap-2">🧠 訓練三：防颱 AI 災害冷知識挑戰區</h3>
+                        <span id="quizStatusBadge"
+                            class="bg-slate-950 text-teal-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-slate-800">尚未答題</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-4">請回答以下由 AI 出題的防颱核心冷知識，答對將即時增進您的安全防災進度：</p>
+
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800/80 mb-4">
+                        <span class="text-xs font-bold text-gray-500 block mb-1">【單選挑戰題】</span>
+                        <p class="text-sm font-semibold text-gray-200 leading-relaxed" id="quizQuestionText">
+                            正在讀取課本核心語意...
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="quizOptionsContainer"></div>
+
+                    <div id="quizResultBox" class="hidden mt-4 p-4 rounded-xl text-center font-bold text-xs"></div>
+
+                    <div class="flex justify-end border-t border-slate-800/60 pt-4 mt-4" id="quizActionContainer"></div>
+                </div>
+
+            </div>
+        </main>
+
+        <footer class="mt-auto border-t border-slate-900 bg-slate-950 px-6 py-6 no-select">
+            <div
+                class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+                <div class="flex flex-col items-center md:items-start gap-1">
+                    <div class="font-bold text-gray-400">🛡️ 智慧防災數位聯動學習系統 (LMS Platform)</div>
+                    <div>© 2026 國立臺南大學數位學習科技學系・專題技術發表</div>
+                </div>
+                <div class="flex items-center gap-4 text-[11px]">
+                    <div class="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-md border border-slate-800">
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
+                        <span class="text-gray-400">Supabase Realtime: 連線中</span>
+                    </div>
+                    <div class="text-gray-600">系統版本 v2.4.0-Prod</div>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://ovyygcsuiwwbgoywplbq.supabase.co';
+        const supabaseKey = 'sb_publishable_Rfekybrmzpc7rjaHAq5Q8Q_ChnHYcAI';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let testUserId = null;
+        let isSidebarExpanded = false;
+        let hasAnsweredTyphoonQuiz = false; // 答題防刷鎖
+        let currentTyphoonQuestionObject = null; // 當前被抽中的題目物件
+        const currentMode = 'typhoon';
+
+        // 🌐 API 呼叫輔助函式：自動偵測 Vercel 雲端 API、本地開發 Port 5000 API，若皆失敗則啟用瀏覽器直連 Gemini API 備援
+        async function apiFetch(endpoint, options = {}) {
+            const paths = [
+                endpoint,
+                `http://127.0.0.1:5000${endpoint.startsWith('/api') ? endpoint.substring(4) : endpoint}`
+            ];
+
+            let lastError = null;
+            for (const basePath of paths) {
+                try {
+                    const url = basePath;
+                    const mergedOptions = {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(options.headers || {})
+                        }
+                    };
+                    const response = await fetch(url, mergedOptions);
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+
+            console.warn("無法連接至後端 API，啟用瀏覽器直連 Gemini API 備援...", lastError);
+            try {
+                return await callGeminiDirectlyFromBrowser(endpoint, options);
+            } catch (geminiErr) {
+                console.error("瀏覽器直連 Gemini 也失敗：", geminiErr);
+                throw lastError || geminiErr;
+            }
+        }
+
+        // 🧠 瀏覽器直連 Gemini 備援大腦：出題與問答直連
+                async function callGeminiDirectlyFromBrowser(endpoint, options) {
+            const apiKey = "AIzaSyB0nqEdU_txzStkTBfhK95E5qbWA6YXpRw";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+            // ── 本地智慧防災模擬器數據 ────────────────────────────────────
+            function getMockQuiz(mode) {
+                const quizPool = {
+                    earthquake: [
+                        {
+                            question: "深夜突然發生強烈地震，房間突然停電且物品掉落一地。這時你剛從睡夢中驚醒，第一步應該怎麼做？",
+                            options: [
+                                "摸黑下床尋找家人與緊急避難包",
+                                "立刻用枕頭保護頭部，在床上趴下、掩護、穩住",
+                                "大聲呼救並立刻跑向大門",
+                                "摸黑去廚房關閉瓦斯與電源總開關"
+                            ],
+                            correctAnswer: "立刻用枕頭保護頭部，在床上趴下、掩護、穩住",
+                            explanation: "地震發生當下，摸黑移動極易被掉落物砸傷。應先就地用枕頭或棉被護頭、趴下掩護，待強震過後再行移動。"
+                        },
+                        {
+                            question: "地震搖晃停止後，為了防範後續引發火災等危險，哪一個應變步驟是正確的？",
+                            options: [
+                                "立刻搭乘電梯逃生",
+                                "留在房內上網分享災情，不需理會瓦斯",
+                                "第一時間關閉瓦斯總開關、切斷火源，並輕輕開啟大門留逃生口",
+                                "立刻打電話給所有親友確認平安"
+                            ],
+                            correctAnswer: "第一時間關閉瓦斯總開關、切斷火源，並輕輕開啟大門留逃生口",
+                            explanation: "強震後首要防範次生火災。應關閉瓦斯與火源，並開啟大門防止門框變形受困，同時切勿使用電梯以防斷電受困。"
+                        },
+                        {
+                            question: "關於居家家具的防震準備，以下哪項敘述是消防署推薦的正確做法？",
+                            options: [
+                                "高大櫃子頂部堆放重物，可以壓穩櫃子",
+                                "電視和櫥櫃應使用L型金屬片或防震黏貼帶固定於牆壁",
+                                "玻璃窗貼X型膠帶能大幅增強抗震強度",
+                                "家具不需要固定，倒塌是正常現象"
+                            ],
+                            correctAnswer: "電視和櫥櫃應使用L型金屬片或防震黏貼帶固定於牆壁",
+                            explanation: "固定重型家具能有效預防強震倒塌砸傷人或阻礙逃生通道。玻璃貼膠帶無法增強抗風抗震強度，僅能防玻璃飛散。"
+                        }
+                    ],
+                    typhoon: [
+                        {
+                            question: "颱風來襲時，常有強風豪雨導致斷水斷電的風險。以下關於防颱物資的儲備，哪項是正確的？",
+                            options: [
+                                "只準備一天的飲用水就夠了",
+                                "應備妥每人每日3公升、至少3天份的飲用水及免加熱的乾糧與手電筒",
+                                "只需要買泡麵，不需要準備飲用水",
+                                "不需要準備手電筒，手機手電筒已足夠應付數日停電"
+                            ],
+                            correctAnswer: "應備妥每人每日3公升、至少3天份的飲用水及免加熱的乾糧與手電筒",
+                            explanation: "颱風可能造成大範圍斷水斷電，且無法出門採買。應備妥3天份的水與糧食，以及手電筒（不消耗手機電力）與行動電源。"
+                        },
+                        {
+                            question: "氣象署發布颱風警報後，以下哪一項居家防範工作是正確的？",
+                            options: [
+                                "將陽台盆栽原封不動擺放以美化環境",
+                                "清理住家周邊排水溝與陽台落水孔，並將陽台盆栽搬入室內",
+                                "立刻到海邊觀浪或登山",
+                                "用膠帶把所有窗戶貼滿，就絕對不會破裂"
+                            ],
+                            correctAnswer: "清理住家周邊排水溝與陽台落水孔，並將陽台盆栽搬入室內",
+                            explanation: "清空排水孔能預防豪雨積水回灌室內。貼膠帶無法增強抗風壓強度，且颱風天切勿前往海邊或山區避免危險。"
+                        },
+                        {
+                            question: "如果您的居住地位於低窪或土石流潛勢區，當政府發布防颱疏散警戒時，您該如何應變？",
+                            options: [
+                                "堅守家園，認為災害不會發生在自己身上",
+                                "立刻配合政府指示，攜帶緊急避難包進行預防性撤離",
+                                "等大水淹到二樓時再打119叫直升機",
+                                "獨自徒步涉水穿過急流尋找安全地方"
+                            ],
+                            correctAnswer: "立刻配合政府指示，攜帶緊急避難包進行預防性撤離",
+                            explanation: "低窪與土石流區應配合政府指示提早撤離。涉水行走於急流極易被沖走溺水，堅守危險區域更會延誤黃金自救時間。"
+                        }
+                    ],
+                    fire: [
+                        {
+                            question: "當你被臥室外的濃煙和高溫困住，大門把手已經燙手，門縫有煙滲入時，以下哪項做法最安全？",
+                            options: [
+                                "用濕毛巾摀住口鼻，強行衝過濃煙逃生",
+                                "關緊房門，用衣物或毛巾塞住門縫阻擋煙霧，並到窗邊待救",
+                                "大聲呼叫並嘗試從窗戶跳下逃生",
+                                "往上跑向頂樓，因為頂樓空氣比較新鮮"
+                            ],
+                            correctAnswer: "關緊房門，用衣物或毛巾塞住門縫阻擋煙霧，並到窗邊待救",
+                            explanation: "火場第一殺手是濃煙與一氧化碳。濕毛巾無法防禦有毒氣體。當門外充滿高溫濃煙時，應立即關門避難、塞門縫，阻止濃煙竄入。"
+                        },
+                        {
+                            question: "關於居家防火設備的敘述，以下哪一項是完全正確的？",
+                            options: [
+                                "只要家裡看起來乾淨，就不需要裝住宅用火災警報器",
+                                "滅火器的使用口訣為 PASS：拉、瞄、壓、掃",
+                                "濕毛巾是火場逃生的黃金法寶，所以一定要花時間去找",
+                                "易燃雜物可以堆在逃生樓梯間，只要留一小條通道就好"
+                            ],
+                            correctAnswer: "滅火器的使用口訣為 PASS：拉、瞄、壓、掃",
+                            explanation: "PASS是拉銷、瞄火源、壓把手、掃射。住警器能及早偵知火災，極為重要。逃生通道必須隨時保持清空，嚴禁堆放雜物。"
+                        },
+                        {
+                            question: "廚房炒菜時鍋子突然起火，此時最正確的滅火步驟是？",
+                            options: [
+                                "立刻拿一大碗水直接澆向油鍋",
+                                "迅速關閉瓦斯，從鍋旁將鍋蓋滑蓋上去，並用濕抹布覆蓋悶熄",
+                                "拿紙箱或抹布大力對著油鍋搧風降溫",
+                                "立刻轉身逃跑，不管廚房火勢"
+                            ],
+                            correctAnswer: "迅速關閉瓦斯，從鍋旁將鍋蓋滑蓋上去，並用濕抹布覆蓋悶熄",
+                            explanation: "油鍋起火絕對不能澆水，否則油水噴濺會擴大火勢。正確做法是關瓦斯並以鍋蓋由側邊滑入覆蓋，窒息滅火。"
+                        }
+                    ],
+                    'home-safety': [
+                        {
+                            question: "為了預防居家一氧化碳中毒，瓦斯熱水器的裝設位置與通風要求，以下哪項是正確的？",
+                            options: [
+                                "只要陽台有裝窗戶，即使常關閉也可以裝一般熱水器",
+                                "瓦斯熱水器應安裝於通風良好的戶外；若在加裝窗戶的陽台，必須裝設強制排氣型熱水器",
+                                "熱水器裝在室內浴室比較保暖，只要洗快一點就安全",
+                                "一氧化碳有臭味，聞到臭味再開窗即可"
+                            ],
+                            correctAnswer: "瓦斯熱水器應安裝於通風良好的戶外；若在加裝窗戶的陽台，必須裝設強制排氣型熱水器",
+                            explanation: "一氧化碳是無色無味的隱形殺手。熱水器裝於室內或通風不良陽台極易造成中毒，必須安裝強制排氣管或移往戶外。"
+                        },
+                        {
+                            question: "為了預防高齡者或孩童在浴室滑倒受傷，以下哪項安全預防措施最有效？",
+                            options: [
+                                "洗澡時少用沐浴乳即可防滑",
+                                "地板保持乾燥，並鋪設防滑貼片、防滑墊，以及裝設安全扶手",
+                                "鋪設亮面瓷磚，因為比較好清理",
+                                "滑倒只是機率問題，不需特別準備"
+                            ],
+                            correctAnswer: "地板保持乾燥，並鋪設防滑貼片、防滑墊，以及裝設安全扶手",
+                            explanation: "浴室是居家最容易滑倒的危險場所。防滑貼片、防滑墊與馬桶/浴缸旁的扶手，是公認最有效的防跌設備。"
+                        },
+                        {
+                            question: "居家防範電氣火災「五不一沒有」原則，以下哪項敘述是錯誤的？",
+                            options: [
+                                "插頭不用不插，插座不超載",
+                                "電線可以打結或綑綁整理，這樣比較整齊美觀",
+                                "周圍不放易燃物，不使用無安全標章電器",
+                                "沒有潮濕使用，定期清理插頭灰塵以防積汙導電"
+                            ],
+                            correctAnswer: "電線可以打結或綑綁整理，這樣比較整齊美觀",
+                            explanation: "電線絕對不能折疊、打結或用鐵絲捆綁，否則容易因內部銅線折損產生高電阻發熱，引發電線短路起火。"
+                        }
+                    ],
+                    'first-aid': [
+                        {
+                            question: "目擊他人突然倒地且失去意識、沒有正常呼吸。以下施救順序與做法何者正確？",
+                            options: [
+                                "先餵他喝水，等他醒來",
+                                "立刻啟動「叫叫壓電」，並進行CPR按壓（按壓速率100-120次/分，深度5-6公分）",
+                                "直接幫他做人工呼吸，不用按壓胸部",
+                                "等救護車來，期間什麼都不做"
+                            ],
+                            correctAnswer: "立刻啟動「叫叫壓電」，並進行CPR按壓（按壓速率100-120次/分，深度5-6公分）",
+                            explanation: "目擊無意識呼吸的患者，應立即施以CPR按壓並尋求AED，口訣「叫叫壓電」能極大化存活機率。"
+                        },
+                        {
+                            question: "切菜時不慎割傷手指，血液不斷湧出。以下止血與處理步驟，哪項是正確的做法？",
+                            options: [
+                                "立刻塗抹大量草藥粉或面粉在傷口上",
+                                "使用乾淨的紗布或衣物直接用力壓迫傷口（直接壓迫止血法），並將受傷部位抬高",
+                                "拿橡皮筋在手指根部死死綁緊，一整天都不要鬆開",
+                                "用自來水一直沖洗傷口，不做其他壓迫動作"
+                            ],
+                            correctAnswer: "使用乾淨的紗布或衣物直接用力壓迫傷口（直接壓迫止血法），並將受傷部位抬高",
+                            explanation: "控制外傷出血首選「直接壓迫止血法」，並抬高傷處。隨意塗藥粉易引發感染，而用橡皮筋死綁可能造成肢體缺血壞死。"
+                        },
+                        {
+                            question: "在使用自動體外心臟電擊去顫器（AED）時，貼好電擊貼片後，當語音提示「正在分析心律」時，施救者應做什麼？",
+                            options: [
+                                "繼續大力按壓胸部",
+                                "大聲喊「大家離開！」，確保所有人不要觸碰病人",
+                                "抱住病人給他溫暖",
+                                "把貼片撕下來重新貼"
+                            ],
+                            correctAnswer: "大聲喊「大家離開！」，確保所有人不要觸碰病人",
+                            explanation: "AED分析心律及電擊時，任何人觸碰病人都會干擾心電圖判讀，或導致施救者被電擊。應確保所有人遠離病人。"
+                        }
+                    ]
+                };
+                const pool = quizPool[mode] || quizPool.earthquake;
+                const rIdx = Math.floor(Math.random() * pool.length);
+                return pool[rIdx];
+            }
+
+            function getMockTutorAnswer(mode, question) {
+                const q = question.toLowerCase();
+                
+                // 地震主題
+                if (mode === "earthquake") {
+                    if (q.includes("避難包") || q.includes("背包") || q.includes("準備")) {
+                        return "緊急避難包應選擇雙肩後背包，裡面備妥 3 天份的飲用水（每人每天約3公升）、常溫乾糧與罐頭、手電筒、求生哨、急救箱及常用藥物、行動電源、保暖衣物與少許現金。避難包必須放在大門口或玄關等隨手可得的位置，且每半年要定期檢查食物與水是否過期、電池是否有電，確保隨時可供緊急撤離使用！";
+                    }
+                    if (q.includes("趴下") || q.includes("掩護") || q.includes("穩住") || q.includes("應變") || q.includes("黃金三角") || q.includes("生命三角") || q.includes("躲")) {
+                        return "地震來襲時，最安全的黃金守則是立即『趴下、掩護、穩住』，躲在堅固桌子底下，雙手緊握桌腳保護頭部與頸部。網路謠傳的『黃金三角』或『生命三角』已被消防署證實為錯誤且危險的做法，因為地震倒塌物方向無法預測，躲在家具旁反而容易被傾倒的家具或掉落的梁柱砸傷。";
+                    }
+                    if (q.includes("家具") || q.includes("固定") || q.includes("櫃子")) {
+                        return "居家家具固定是防震的第一步。高大的櫥櫃、書架應使用L型金屬片或防震貼帶固定於牆面或天花板。櫃子的門板應裝設安全鎖扣防止劇烈搖晃時物品噴出。重物應放在櫃子下層，高處切勿擺放易碎的花瓶或重物，以防止倒塌砸傷人或阻礙逃生路線。";
+                    }
+                    if (q.includes("火") || q.includes("瓦斯") || q.includes("震後") || q.includes("電梯")) {
+                        return "地震搖晃停止後，應第一時間關閉瓦斯總開關、切斷火源以防火災。輕輕開啟大門留個逃生口，防止門框變形受困。如果需要撤離，切勿搭乘電梯以免受困，應走安全樓梯。若出門撤離，請穿上厚底鞋防止被碎玻璃割傷，並帶上避難包迅速前往指定避難收容處所。";
+                    }
+                    return "您好！我是您的 AI 地震防災導師。地震是台灣常見的天然災害，準備好「居家家具固定」與「緊急避難包」，並在震時落實「趴下、掩護、穩住」是保護生命安全的關鍵。您是否想瞭解如何準備避難包，或是地震當下的避難迷思呢？";
+                }
+                
+                // 颱風主題
+                if (mode === "typhoon") {
+                    if (q.includes("準備") || q.includes("物資") || q.includes("水") || q.includes("乾糧") || q.includes("手電筒")) {
+                        return "防颱物資的儲備非常關鍵。建議準備每人每天3公升的飲用水，並備足3天份。食物以不需加熱、高熱量的常溫食物為主（如罐頭、餅乾、八寶粥）。此外，應備妥多功能手電筒、行動電源、急救箱與防災收音機。收音機能在停電與網路中斷時，協助您獲取氣象局與地方政府發布的最新防災與撤離指引。";
+                    }
+                    if (q.includes("玻璃") || q.includes("膠帶") || q.includes("窗戶")) {
+                        return "很多民眾習慣在颱風天用膠帶在窗戶貼『X』字型，但內政部消防署與建築研究所已進行過風壓測試，證實貼膠帶完全無法增強玻璃的抗風壓強度，甚至貼錯膠帶還可能導致應力集中更容易破裂。貼膠帶唯一的作用是，當玻璃被飛散物體砸碎時，能防碎玻璃飛散傷人。最好的做法是裝設防颱百葉窗，或是選用合格的強化安全玻璃。";
+                    }
+                    if (q.includes("積水") || q.includes("陽台") || q.includes("排水") || q.includes("清理")) {
+                        return "颱風常伴隨瞬間豪大雨，居家防積水最重要的是在颱風來臨前，徹底清理陽台落水孔、屋頂排水溝與住家周邊水溝的雜物（如落葉、垃圾、淤泥）。另外，陽台上的盆栽、懸掛物應移入室內，避免強風吹落砸傷行人或砸壞車輛，陽台的落地窗也應扣緊安全鎖。";
+                    }
+                    if (q.includes("低窪") || q.includes("撤離") || q.includes("土石流") || q.includes("山區")) {
+                        return "若您居住在山區、土石流潛勢區或低窪易淹水區，當氣象局發布颱風警報且累積雨量達到警戒值時，應在雨勢轉大、入夜前，提早配合地方政府的預防性疏散指示，攜帶避難包撤離至安全收容所。切勿聽到警報才臨時求救，那將增加搜救的困難與危險。";
+                    }
+                    return "您好！我是您的 AI 防颱導師。防颱的重點在於「防風、防雨、防斷水電」。在颱風來臨前清理陽台排水溝、準備3天份水糧，並隨時注意最新的氣象局警報，能大大減少災害損失。您想瞭解窗戶防颱的迷思，還是防颱避難包該準備什麼呢？";
+                }
+                
+                // 火災主題
+                if (mode === "fire") {
+                    if (q.includes("住警器") || q.includes("警報器") || q.includes("偵測")) {
+                        return "住宅用火災警報器（簡稱住警器）是居家防火神器！它能在火災發生的極初期，偵測到煙霧或高溫，發出高分貝的警報聲，及早叫醒熟睡中的家人。住警器應安裝於寢室、客廳、走廊及樓梯間（廚房則建議安裝定溫型，避免炒菜油煙誤報）。住警器安裝簡單、免配線，能為家庭爭取寶貴的黃金逃生時間。";
+                    }
+                    if (q.includes("濃煙") || q.includes("濕毛巾") || q.includes("毛巾") || q.includes("口鼻")) {
+                        return "濕毛巾摀口鼻是火場逃生的致命迷思！消防署已多次澄清，濕毛巾無法阻擋火場首要殺手『一氧化碳』與有毒氣體，且尋找毛巾 and 將其沾濕會耽誤逃生黃金時間。濕毛巾還會阻礙呼吸，讓人在濃煙中更快窒息。火場逃生的正確做法是：若通道無煙無熱，應迅速向下逃生；若通道充滿濃煙高熱，應立即關門退回室內避難！";
+                    }
+                    if (q.includes("關門") || q.includes("避難") || q.includes("塞門縫")) {
+                        return "當火災發生，您一開門發現走廊或樓梯間已經充滿濃煙高熱、無法通行時，請立刻『關門避難』！緊閉房門（木門或防火門）能有效阻擋濃煙與熱氣竄入，並用衣物、毛巾塞住門縫。隨後移動到陽台或有對外窗的房間撥打119，告知搜救人員您的具體位置。只要門外是濃煙，關門避難的存活率遠高於強行衝過濃煙！";
+                    }
+                    if (q.includes("滅火器") || q.includes("pass") || q.includes("廚房")) {
+                        return "家用滅火器是初期滅火的利器。使用口訣為 PASS：1. P：拉開安全插銷。2. A：握住噴嘴，瞄準火源根部。3. P：壓下把手，噴出滅劑。4. S：左右掃射火源。如果是油鍋起火，絕對不能澆水，應關閉瓦斯，從鍋旁將鍋蓋滑蓋上去，並用濕抹布覆蓋悶熄。若火勢已延燒至天花板，應放棄滅火立即逃生！";
+                    }
+                    return "您好！我是您的 AI 防火逃生導師。面對火災，『預防為先，逃生第一』。安裝住警器能及早警報，而遭遇濃煙時『關門避難』是消防署推薦的黃金自救法。您想詢問火場逃生的濕毛巾迷思，還是如何正確使用滅火器呢？";
+                }
+                
+                // 綜合安全主題
+                if (mode === "home-safety") {
+                    if (q.includes("熱水器") || q.includes("瓦斯") || q.includes("通風") || q.includes("一氧化碳") || q.includes("中毒")) {
+                        return "預防一氧化碳中毒的黃金法則就是維持良好通風。瓦斯熱水器必須裝設在戶外通風良好處。如果必須裝在陽台，且陽台有加裝窗戶、曬衣架或堆放雜物，就必須裝設『強制排氣型熱水器（FE式）』，將廢氣經由排氣管強行排至室外。且安裝必須由合格的『特定瓦斯器具裝修技術士』進行，每年定期檢修。";
+                    }
+                    if (q.includes("防滑") || q.includes("跌倒") || q.includes("浴室") || q.includes("扶手") || q.includes("防跌")) {
+                        return "浴室是居家跌倒意外的高風險區。防跌倒的做法包括：在浴室地板鋪設防滑墊或貼防滑貼片，浴缸旁與馬桶旁加裝堅固的安全扶手。洗澡時應坐在洗澡椅上，並維持光線充足。此外，走廊與通道應維持清空，電線不可橫跨走道，家具尖銳角應包覆防撞條，降低滑倒或碰撞受傷的機率。";
+                    }
+                    if (q.includes("電線") || q.includes("插座") || q.includes("延長線") || q.includes("超載") || q.includes("打結")) {
+                        return "防範電氣火災要遵守『五不一沒有』原則：用電不超載、電線不折損與打結、插頭不用不插、周圍不放易燃物、不用無安全標章電器、沒有潮濕使用。電線如果打結或綑綁，會導致熱量累積、外皮熔化，極易釀成短路火災。延長線應選擇具備過載自動斷電保護功能，且電器不用時應隨手拔掉插頭。";
+                    }
+                    return "您好！我是您的 AI 居家安全導師。居家環境中，浴室防滑、電氣安全與熱水器通風是預防居家意外的三大關鍵。您是否想瞭解如何改善浴室的防滑設施，或者電線延長線的安全用電常識呢？";
+                }
+                
+                // 急救主題
+                if (mode === "first-aid") {
+                    if (q.includes("cpr") || q.includes("aed") || q.includes("倒地") || q.includes("呼吸") || q.includes("叫叫壓電")) {
+                        return "當看見他人倒地、確認其沒有呼吸或僅有瀕死呼吸時，應立即啟動急救流程『叫叫壓電』：1. 叫：拍打雙肩確認有無意識。2. 叫：大聲呼救，指派特定旁人打119、拿取AED。3. 壓：立即壓胸（CPR），位置在兩乳頭連線中央，速率為每分鐘100-120次，深度5-6公分，每次要讓胸部完全回彈。4. 電：AED到達後開啟電源貼貼片，分析心律並在指示下按電擊鈕。";
+                    }
+                    if (q.includes("流血") || q.includes("止血") || q.includes("割傷") || q.includes("傷口")) {
+                        return "遇到肢體割傷或外傷流血時，最有效的初期止血法是『直接壓迫止血法』：使用乾淨的紗布、毛巾或直接用手，用力壓迫傷口流血處，通常壓迫 5-10 分鐘即可止血，同時將受傷的肢體抬高至心臟高度以上，減緩血流速度。切勿在傷口上塗抹藥粉或偏方，那容易造成感染並影響清創。若大量出血，應立刻撥打119。";
+                    }
+                    if (q.includes("中暑") || q.includes("熱傷害") || q.includes("熱衰竭")) {
+                        return "遇到中暑等熱傷害患者，應先將其移至陰涼通風處，鬆脫衣物散熱。在意識清醒的前提下，可以給予補充水分與少許鹽水或運動飲料。可以使用濕毛巾擦拭身體，或在腋下、頸部、鼠蹊部冰敷降溫，並儘速送醫。若患者已失去意識，切勿強行灌水，避免吸入性肺炎，應立即撥打119送醫。";
+                    }
+                    return "您好！我是您的 AI 急救導師。掌握基礎急救技能，如 CPR+AED 與正確的止血法，在關鍵時刻能拯救生命。您想瞭解心肺復甦術的『叫叫壓電』步驟，還是外傷流血該如何進行壓迫止血？";
+                }
+                
+                return "您好！我是您的防災導師。這個問題非常有深度，但建議我們先聚焦於當前的防災主題，這能幫助我們更好地掌握核心安全指南！您是否有其他關於防災整備或安全指南的問題呢？";
+            }
+
+            try {
+                if (endpoint.includes("get-quiz") || endpoint.includes("get_quiz")) {
+                    let mode = "typhoon";
+                    const urlParams = new URLSearchParams(endpoint.split('?')[1] || "");
+                    if (urlParams.has("mode")) {
+                        mode = urlParams.get("mode");
+                    }
+
+                    const descMap = {
+                        "earthquake": "情境：深夜突然發生規模 6.5 強震，屋內停電且物品散落。請針對【地震當下應變】或【摸黑尋找與使用避難包】設計一道引導式情境單選題。",
+                        "typhoon": "情境：強烈颱風登陸，你家已經停水停電進入第二天，外面風雨交加無法出門。請針對【長期停水電的物資分配】或【防颱居家準備不足時的補救】設計一道引導式情境單選題。",
+                        "fire": "情境：你住的大樓深夜發生火警，門外樓梯間已經充滿濃煙。請針對【火場逃生決策】或【如何運用身邊物資防煙】設計一道引導式情境單選題。",
+                        "home-safety": "情境：你正在進行居家安全大檢修，發現熱水器裝在通風不良的室內陽台，且家中浴室地板濕滑無防滑措施。請針對【一氧化碳中毒防範】或【居家防跌倒/防墜落安全預防】設計一道引導式情境單選題。",
+                        "first-aid": "情境：在路邊目擊一位路人突然倒地、失去意識且沒有呼吸。或者有人切菜時手指大出血。請針對【CPR與AED使用關鍵步驟】或【正確的止血與包紮急救法】設計一道引導式情境單選題。"
+                    };
+                    const selectedDesc = descMap[mode] || descMap["typhoon"];
+
+                    const systemInstruction = `你是一位防災教育專家，負責進行「斷點引導式教學」。
+\${selectedDesc}
+請務必回傳符合 schema 的 JSON 格式。`;
+
+                    const responseSchema = {
+                        "type": "OBJECT",
+                        "properties": {
+                            "question": { "type": "STRING" },
+                            "options": {
+                                "type": "ARRAY",
+                                "items": { "type": "STRING" }
+                            },
+                            "correctAnswer": { "type": "STRING" },
+                            "explanation": { "type": "STRING" }
+                        },
+                        "required": ["question", "options", "correctAnswer", "explanation"]
+                    };
+
+                    const response = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `請出題（當前模式：\${mode}，出題時間戳記：\${Date.now()}）。` }] }],
+                            systemInstruction: { parts: [{ text: systemInstruction }] },
+                            generationConfig: {
+                                temperature: 1.0,
+                                responseMimeType: "application/json",
+                                responseSchema: responseSchema
+                            }
+                        })
+                    });
+
+                    if (!response.ok) throw new Error("Gemini API 回傳錯誤: " + response.status);
+                    const resData = await response.json();
+                    const rawText = resData.candidates[0].content.parts[0].text;
+                    return JSON.parse(rawText.trim());
+
+                } else if (endpoint.includes("ask-tutor") || endpoint.includes("ask_tutor")) {
+                    const bodyData = JSON.parse(options.body || "{}");
+                    const question = bodyData.question || "";
+                    const mode = bodyData.mode || "typhoon";
+
+                    const contextMap = {
+                        "earthquake": "根據中華民行政部消防署《防震手冊》，地震時黃金守則是「趴下、掩護、穩住」。在堅固桌下保護頭頸。震後第一時間應關閉瓦斯總開關、切斷火源，防止發生次生火災。櫥櫃應使用L型金屬片固定於牆壁。",
+                        "typhoon": "根據消防署《颱洪災害防救手冊》，防颱準備包括陽台盆栽搬入室內、清理排水溝以防積水。氣象署澄清，窗戶玻璃貼X型膠帶完全無法增強抗風壓能力，僅防碎玻璃飛散。低窪或土石流潛勢區居民應配合政府預防性撤離，備妥3天避難包。",
+                        "fire": "根據消防署《火災預防與應變手冊》，濃煙是火場首要殺手。若門外充滿濃煙，切勿往上逃生，應關閉房門阻擋煙霧，並用衣物塞住門縫就地避難。網路謠傳用濕毛巾摀口鼻已證實為錯誤觀念，因為毛巾無法防禦一氧化碳，且尋找毛巾會耽誤逃生。住家應裝住警器。",
+                        "home-safety": "根據居家安全手冊，瓦斯熱水器必須裝設在通風良好的戶外陽台。若裝在室內或加裝窗戶的陽台，必須安裝強制排氣管以防範一氧化碳中毒。浴室地板應使用防滑貼片、鋪設防滑墊防跌倒。插座切勿超載使用。",
+                        "first-aid": "根據消防署急救教材，目擊他人突然倒地且失去意識無呼吸時，應立即啟動「叫叫壓電」：確認意識、叫打119拿AED、CPR按壓（按壓速率100-120次/分，深度5-6公分），並依AED指示電擊。出血優先使用「直接壓迫止血法」。"
+                    };
+
+                    const systemInstruction = `你是一位對齊台灣消防署官方防災指引的 AI 防災導師，語氣親切溫柔且專業。
+        
+主題模式：\${mode}
+官方指引背景知識：\${contextMap[mode] || contextMap['typhoon']}
+
+答題規範：
+1. 請針對學生的提問進行解答。
+2. 若學生的提問與當前主題無關（例如問天氣、無意義亂碼、或閒聊），請溫柔地提醒並引導他回到防災與準備的主題，切勿胡亂回答或敷衍。
+3. 字數請控制在 150 到 200 字以內，使用純文字，不要夾帶任何 Markdown 語法，若要換行請直接換行。`;
+
+                    const response = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: question }] }],
+                            systemInstruction: { parts: [{ text: systemInstruction }] },
+                            generationConfig: { temperature: 0.7 }
+                        })
+                    });
+
+                    if (!response.ok) throw new Error("Gemini API 回傳錯誤: " + response.status);
+                    const resData = await response.json();
+                    return { answer: resData.candidates[0].content.parts[0].text.trim() };
+                }
+                throw new Error("不支援的 API 路徑: " + endpoint);
+            } catch (err) {
+                console.warn("⚠️ Gemini API 呼叫失敗，已自動啟用本地智慧防災模擬器:", err);
+                
+                if (endpoint.includes("get-quiz") || endpoint.includes("get_quiz")) {
+                    let mode = "typhoon";
+                    const urlParams = new URLSearchParams(endpoint.split('?')[1] || "");
+                    if (urlParams.has("mode")) {
+                        mode = urlParams.get("mode");
+                    }
+                    return getMockQuiz(mode);
+                } else if (endpoint.includes("ask-tutor") || endpoint.includes("ask_tutor")) {
+                    const bodyData = JSON.parse(options.body || "{}");
+                    const question = bodyData.question || "";
+                    const mode = bodyData.mode || "typhoon";
+                    return { answer: getMockTutorAnswer(mode, question) };
+                }
+                throw err;
+            }
+        }
+
+        // 🌟 專屬該課本《颱洪災害防救手冊.pdf》的核心保底題庫
+                const typhoonBookQuestionsPool = [
+            {
+                question: "當中央氣象署發布颱風暴風圈即將籠罩某山區，且降雨量已達警戒標準時，政府會發布「土石流黃色警戒」。此時居住在潛勢溪流旁的居民應採取何種正確作為？",
+                options: [
+                    "(A) 留在家中緊閉門窗，並往一樓地面移動避難",
+                    "(B) 自行開車前往溪邊確認水流量，協助回報災情",
+                    "(C) 應配合地方政府勸告，及早進行『預防性疏散撤離』",
+                    "(D) 待在家中清理家具，等轉為紅色警戒再做出門準備"
+                ],
+                correctAnswer: "(C) 應配合地方政府勸告，及早進行『預防性疏散撤離』",
+                explanation: "黃色警戒代表降雨已達撤離基準，山區居民應配合保全對象實施預防性疏散撤離，若等入夜或紅色警戒發布時，土石流可能已經爆發，道路中斷將導致救援困難！"
+            },
+            {
+                question: "根據《颱洪災害防救手冊》課本澄清，許多人在颱風來臨前會在窗戶玻璃上貼上『X』字型的膠帶，關於這項居家整備動作的正確防災認知為何？",
+                options: [
+                    "(A) 膠帶能大幅增強玻璃抵抗外在強風風壓的能力",
+                    "(B) 膠帶完全無法增加抗風壓能力，主要目的是強風吹破時防止碎片飛散傷人",
+                    "(C) 貼黃色膠帶比貼透明膠帶更有防水防颱的效果",
+                    "(D) 手冊規定不管任何玻璃，都必須用膠帶全部貼滿才算合格"
+                ],
+                correctAnswer: "(B) 膠帶完全無法增加抗風壓能力，主要目的是強風吹破時防止碎片飛散傷人",
+                explanation: "氣象署與防災手冊多次澄清，貼膠帶是無法增強玻璃對抗強風結構的，僅能在大面積玻璃破裂時防止尖銳碎片四處飛散。根本解決之道是安裝合格的氣密窗！"
+            },
+            {
+                question: "依據災害防救教材指引，在颱風侵襲期間，若遇到低窪地區淹水或道路積水，下列哪一項屬於絕對安全的保命行為？",
+                options: [
+                    "(A) 徒步涉水強行通過深達膝蓋的積水路段",
+                    "(B) 開車加速衝過地下道積水以防引擎熄火",
+                    "(C) 遠離淹水區域及地下室，移往地勢較高的堅固建築物高樓層避難",
+                    "(D) 前往海邊高處觀賞巨浪以確認颱風強度變動"
+                ],
+                correctAnswer: "(C) 遠離淹水區域及地下室，移往地勢較高的堅固建築物高樓層避難",
+                explanation: "強風雨期間切勿外出。若遇淹水應迅速前往高處坚固建築物避難，不可徒步或開車涉水，以免被水流沖走或受困熄火。"
+            },
+            {
+                question: "颱風天停電時，若需要照明，以下哪項做法在消防署防範火災的考量中最安全？",
+                options: [
+                    "(A) 使用手電筒或LED照明燈",
+                    "(B) 在客廳或臥室點燃多支蠟燭照明",
+                    "(C) 使用煤油燈並放在窗戶旁",
+                    "(D) 開瓦斯爐火當作火光照明"
+                ],
+                correctAnswer: "(A) 使用手電筒或LED照明燈",
+                explanation: "點蠟燭容易因強風吹倒或觸碰易燃物而釀成火災。消防署推薦停電時以手電筒、LED燈為首選照明工具。"
+            },
+            {
+                question: "颱風來襲前，若居住在都市大樓中，以下哪項整備作為可以有效防範積淹水？",
+                options: [
+                    "(A) 檢查屋頂及陽台排水口是否被樹葉或雜物阻塞，並清理",
+                    "(B) 將地下室停車場的防洪閘門完全拆除",
+                    "(C) 把水塔的水全部放光以防風吹跑",
+                    "(D) 把一樓的大門敞開以利通風"
+                ],
+                correctAnswer: "(A) 檢查屋頂及陽台排水口是否被樹葉或雜物阻塞，並清理",
+                explanation: "排水口阻塞是造成陽台淹水或大樓頂樓漏水積水的主因。防颱前應主動清理確保排水通暢。"
+            },
+            {
+                question: "關於防颱緊急避難包中的常備藥物，以下哪項敘述是正確的？",
+                options: [
+                    "(A) 不需要準備，颱風天感冒就多喝熱水",
+                    "(B) 應備妥個人慢性病常用藥物、基礎感冒發燒藥、外傷敷料與消毒用品",
+                    "(C) 多準備一些抗生素，不管什麼痛都吃一顆",
+                    "(D) 過期多年的藥物也可以放進包包，備而不用"
+                ],
+                correctAnswer: "(B) 應備妥個人慢性病常用藥物、基礎感冒發燒藥、外傷敷料與消毒用品",
+                explanation: "颱風天容易斷水斷電甚至封路，就醫困難。有慢性病的人必須準備足夠藥物，並備妥基礎急救外傷敷料。"
+            },
+            {
+                question: "在中央氣象署發布強烈颱風陸上警報時，以下哪一項活動是消防署強烈禁止且會依法開罰的？",
+                options: [
+                    "(A) 待在堅固的建築物室內，並緊閉窗戶",
+                    "(B) 前往海邊觀浪、戲水，或前往封閉山區登山阻溪",
+                    "(C) 上網關注防災最新災情發布",
+                    "(D) 與家人確認緊急避難物資的保存期限"
+                ],
+                correctAnswer: "(B) 前往海邊觀浪、戲水，或前往封閉山區登山阻溪",
+                explanation: "颱風天前往危險區域活動，不僅威脅自身安全，更浪費搜救資源，依法可被處以處罰與警告。"
+            },
+            {
+                question: "颱風過境後，如果發現住家附近有高壓電線被強風吹落，正確的應變方式為何？",
+                options: [
+                    "(A) 主動將電線撿起放回電線桿旁",
+                    "(B) 用腳踢踢看確認有沒有電",
+                    "(C) 絕對不要碰觸，應立刻通知台電公司（撥打1911）或通報消防局處理",
+                    "(D) 拿木棍將其挑到水溝裡"
+                ],
+                correctAnswer: "(C) 絕對不要碰觸，應立刻通知台電公司（撥打1911）或通報消防局處理",
+                explanation: "掉落電線可能仍帶有高壓電，碰觸或使用潮濕木棍等導電物極易造成觸電。應保持距離並通知專業人員。"
+            },
+            {
+                question: "颱風來襲期間，如果家裡突然發生停水，以下哪項作為最合理？",
+                options: [
+                    "(A) 打電話去自來水公司大罵",
+                    "(B) 啟用防颱前儲備的飲用水進行維生，並節約使用生活用水",
+                    "(C) 直接喝馬桶水箱裡儲備的生水",
+                    "(D) 跑去外面承接豪雨直接生飲"
+                ],
+                correctAnswer: "(B) 啟用防颱前儲備的飲用水進行維生，並節約使用生活用水",
+                explanation: "平時的防颱儲水此時派上用場。未過濾的雨水或生水易受污染，不可直接生飲。"
+            },
+            {
+                question: "颱風登陸期間，風雨最大時，如果發現窗戶有輕微滲水，應該怎麼辦？",
+                options: [
+                    "(A) 立刻衝到室外去用膠帶貼窗戶",
+                    "(B) 使用抹布或吸水毛巾鋪設在滲水處阻擋，待風雨過後再行維修",
+                    "(C) 把整面玻璃砸破，防止氣壓不均",
+                    "(D) 假裝沒看見，回房睡覺"
+                ],
+                correctAnswer: "(B) 使用抹布或吸水毛巾鋪設在滲水處阻擋，待風雨過後再行維修",
+                explanation: "風雨交加時切勿冒險到室外工作。應在室內使用吸水材料臨時阻水，確保人身安全。"
+            }
+        ];;
+
+        let currentQuestionIndex = 0;
+        let correctAnswersCount = 0;
+        let quizState = "IDLE";
+        let shuffledQuestions = []; // IDLE, PLAYING, COMPLETED
+        let currentQuizData = null;
+        let hasAnsweredQuiz = false;
+
+        // 初始化/載入測驗介面狀態
+        function initQuizUI() {
+            const questionTextEl = document.getElementById('quizQuestionText');
+            const optionsContainer = document.getElementById('quizOptionsContainer');
+            const resultBox = document.getElementById('quizResultBox');
+            const badge = document.getElementById('quizStatusBadge');
+            const actionContainer = document.getElementById('quizActionContainer');
+
+            if (quizState === "IDLE") {
+                if (resultBox) resultBox.classList.add('hidden');
+                if (badge) {
+                    badge.className = "bg-slate-950 text-teal-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-slate-800";
+                    badge.innerText = "尚未挑戰";
+                }
+                questionTextEl.innerText = "本測驗將由 AI 針對防颱手冊內容，為您量身設計 10 題情境考題。完成測驗後，系統將結算您的防颱安全防禦力！";
+                optionsContainer.innerHTML = `
+                    <button onclick="startTenQuizChallenge()" class="col-span-1 md:col-span-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-4 px-6 rounded-xl transition duration-300 shadow-md flex items-center justify-center gap-2 active:scale-95 cursor-pointer text-sm">
+                        🚀 開始 10 題 AI 挑戰
+                    </button>
+                `;
+                if (actionContainer) actionContainer.innerHTML = '';
+            } else if (quizState === "COMPLETED") {
+                if (resultBox) resultBox.classList.add('hidden');
+                const finalScore = correctAnswersCount * 10;
+                if (badge) {
+                    badge.className = finalScore >= 60
+                        ? "bg-green-950 text-green-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-green-900/40"
+                        : "bg-red-950 text-red-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-red-900/40";
+                    badge.innerText = `挑戰結算：${finalScore}分`;
+                }
+
+                let performanceReview = "";
+                if (finalScore === 100) {
+                    performanceReview = "卓越非凡！您已完美掌握了本教室的所有防災應變知識！💯";
+                } else if (finalScore >= 80) {
+                    performanceReview = "表現優異！您具備了非常紮實的防颱防護觀念！🌟";
+                } else if (finalScore >= 60) {
+                    performanceReview = "及格通過！建議您平時多多演練，確保安全無虞。👍";
+                } else {
+                    performanceReview = "挑戰未及格。建議您重新研讀上方官方手冊，再回來進行挑戰喔！📚";
+                }
+
+                questionTextEl.innerText = `🎉 挑戰結束！\n\n您的最終得分是：${finalScore} 分！\n您總共答對了 ${correctAnswersCount} / 10 題。\n\n${performanceReview}`;
+                optionsContainer.innerHTML = `
+                    <button onclick="resetQuizChallenge()" class="col-span-1 md:col-span-2 w-full bg-slate-800 hover:bg-slate-700 text-teal-400 border border-slate-700 font-bold py-4 px-6 rounded-xl transition duration-300 shadow-md flex items-center justify-center gap-2 active:scale-95 cursor-pointer text-sm">
+                        🔄 重新挑戰
+                    </button>
+                `;
+                if (actionContainer) actionContainer.innerHTML = '';
+
+                // 動態保存進度
+                saveQuizProgressScore(finalScore);
+            }
+        }
+
+        // 開始 10 題挑戰
+        function startTenQuizChallenge() {
+            // Fisher-Yates 隨機打亂題庫，保證不重複
+            shuffledQuestions = [...typhoonBookQuestionsPool];
+            for (let i = shuffledQuestions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledQuestions[i], shuffledQuestions[j]] = [shuffledQuestions[j], shuffledQuestions[i]];
+            }
+        
+            currentQuestionIndex = 0;
+            correctAnswersCount = 0;
+            quizState = "PLAYING";
+            loadQuestionIndex();
+        }
+
+        // 重設挑戰
+        function resetQuizChallenge() {
+            quizState = "IDLE";
+            initQuizUI();
+        }
+
+        // 載入當前題目
+        async function loadQuestionIndex() {
+            hasAnsweredQuiz = false;
+            const questionTextEl = document.getElementById('quizQuestionText');
+            const optionsContainer = document.getElementById('quizOptionsContainer');
+            const resultBox = document.getElementById('quizResultBox');
+            const badge = document.getElementById('quizStatusBadge');
+            const actionContainer = document.getElementById('quizActionContainer');
+
+            if (resultBox) resultBox.classList.add('hidden');
+            if (badge) {
+                badge.className = "bg-slate-950 text-teal-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-slate-800";
+                badge.innerText = `第 ${currentQuestionIndex + 1} / 10 題`;
+            }
+            if (actionContainer) actionContainer.innerHTML = '';
+
+            questionTextEl.innerText = "AI 正在為您設計情境考題...";
+            optionsContainer.innerHTML = `
+                <div class="col-span-1 md:col-span-2 text-center py-6 text-gray-500 text-xs">
+                    ⏳ 讀取中，請稍候...
+                </div>
+            `;
+
+            try {
+                const data = await apiFetch(`/api/get-quiz?mode=${currentMode}`);
+                currentQuizData = data;
+
+                questionTextEl.innerText = data.question;
+                optionsContainer.innerHTML = '';
+
+                data.options.forEach((optText, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = "quiz-opt-btn w-full bg-slate-900 border border-slate-800 hover:border-teal-500/50 p-4 rounded-xl text-left text-xs md:text-sm font-medium transition cursor-pointer text-gray-300 active:scale-98";
+                    btn.innerText = optText;
+                    btn.onclick = () => checkQuizAnswer(optText, btn);
+                    optionsContainer.appendChild(btn);
+                });
+            } catch (err) {
+                console.error("動態出題失敗，使用保底題目", err);
+
+                currentQuizData = shuffledQuestions[currentQuestionIndex];
+
+                questionTextEl.innerText = currentQuizData.question;
+                optionsContainer.innerHTML = '';
+                currentQuizData.options.forEach((optText, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = "quiz-opt-btn w-full bg-slate-900 border border-slate-800 hover:border-teal-500/50 p-4 rounded-xl text-left text-xs md:text-sm font-medium transition cursor-pointer text-gray-300 active:scale-98";
+                    btn.innerText = optText;
+                    btn.onclick = () => checkQuizAnswer(optText, btn);
+                    optionsContainer.appendChild(btn);
+                });
+            }
+        }
+
+        // 🌟 核心功能：驗證答案
+        async function checkQuizAnswer(selectedOptionText, clickedBtn) {
+            if (hasAnsweredQuiz || !currentQuizData) return;
+            hasAnsweredQuiz = true;
+
+            const resultBox = document.getElementById('quizResultBox');
+            const badge = document.getElementById('quizStatusBadge');
+            const buttons = document.querySelectorAll('.quiz-opt-btn');
+            const actionContainer = document.getElementById('quizActionContainer');
+
+            resultBox.classList.remove('hidden');
+            buttons.forEach(btn => btn.classList.add('opacity-50', 'pointer-events-none'));
+
+            const isCorrect = (selectedOptionText.trim() === currentQuizData.correctAnswer.trim());
+
+            if (isCorrect) {
+                correctAnswersCount++;
+                clickedBtn.classList.remove('opacity-50');
+                clickedBtn.classList.add('bg-green-950', 'border-green-500', 'text-green-400');
+
+                resultBox.className = "mt-4 p-4 bg-green-950/30 border border-green-500/30 text-green-400 rounded-xl text-center font-bold text-xs";
+                resultBox.innerHTML = `🎉 答對了！\n\n${currentQuizData.explanation}`;
+            } else {
+                clickedBtn.classList.remove('opacity-50');
+                clickedBtn.classList.add('bg-red-950', 'border-red-500', 'text-red-400');
+
+                buttons.forEach(btn => {
+                    if (btn.innerText.trim() === currentQuizData.correctAnswer.trim()) {
+                        btn.classList.remove('opacity-50');
+                        btn.classList.add('bg-green-950', 'border-green-500', 'text-green-400');
+                    }
+                });
+
+                resultBox.className = "mt-4 p-4 bg-red-950/30 border border-red-500/30 text-red-400 rounded-xl text-center font-bold text-xs";
+                resultBox.innerHTML = `❌ 答錯了喔！正確答案是：${currentQuizData.correctAnswer}。\n\n${currentQuizData.explanation}`;
+            }
+
+            // 出現下一題/查看結算按鈕
+            if (actionContainer) {
+                if (currentQuestionIndex < 9) {
+                    actionContainer.innerHTML = `
+                        <button onclick="goToNextQuestion()" class="bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs py-2 px-4 rounded-xl transition-all shadow-md flex items-center gap-1.5 active:scale-95 cursor-pointer no-select">
+                            下一題 ➡️
+                        </button>
+                    `;
+                } else {
+                    actionContainer.innerHTML = `
+                        <button onclick="completeQuizChallenge()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-4 rounded-xl transition-all shadow-md flex items-center gap-1.5 active:scale-95 cursor-pointer no-select">
+                            查看總結算 🏁
+                        </button>
+                    `;
+                }
+            }
+        }
+
+        function goToNextQuestion() {
+            currentQuestionIndex++;
+            loadQuestionIndex();
+        }
+
+        function completeQuizChallenge() {
+            quizState = "COMPLETED";
+            initQuizUI();
+        }
+
+        // 🌟 連動資料庫：將答題結果動態寫入雲端欄位
+        async function saveQuizProgressScore(scoreValue) {
+            if (!testUserId) return;
+            try {
+                await supabaseClient.from('lms_disaster_progress')
+                    .update({ learning_records: scoreValue, updated_at: new Date().toISOString() })
+                    .eq('user_id', testUserId);
+            } catch (err) { console.error("雲端更新失敗:", err); }
+        }
+
+        function setSidebarState(expand) {
+            const sidebar = document.getElementById('sidebarNav');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggleIcon = document.getElementById('toggleBtnIcon');
+            const isMobile = window.innerWidth < 768;
+
+            if (isMobile) {
+                if (expand) {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    overlay.classList.remove('hidden');
+                    setTimeout(() => overlay.classList.add('opacity-100'), 10);
+                    if (toggleIcon) toggleIcon.innerText = '✕';
+                    isSidebarExpanded = true;
+                } else {
+                    sidebar.classList.remove('translate-x-0');
+                    sidebar.classList.add('-translate-x-full');
+                    overlay.classList.add('hidden');
+                    if (toggleIcon) toggleIcon.innerText = '☰';
+                    isSidebarExpanded = false;
+                }
+            } else {
+                if (!expand) {
+                    sidebar.classList.remove('md:w-64');
+                    sidebar.classList.add('md:w-16');
+                    if (toggleIcon) toggleIcon.innerText = '☰';
+                    document.querySelectorAll('.sidebar-text').forEach(el => el.classList.add('opacity-0', 'pointer-events-none'));
+                    isSidebarExpanded = false;
+                } else {
+                    sidebar.classList.remove('md:w-16');
+                    sidebar.classList.add('md:w-64');
+                    if (toggleIcon) toggleIcon.innerText = '✕';
+                    document.querySelectorAll('.sidebar-text').forEach(el => el.classList.remove('opacity-0', 'pointer-events-none'));
+                    isSidebarExpanded = true;
+                }
+            }
+        }
+
+        function toggleSidebar() { setSidebarState(!isSidebarExpanded); }
+
+        let touchStartX = 0; let touchStartY = 0;
+        window.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+        window.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].screenX; const touchEndY = e.changedTouches[0].screenY;
+            const deltaX = touchEndX - touchStartX; const deltaY = touchEndY - touchStartY;
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 60) {
+                if (deltaX > 0 && touchStartX < 60) setSidebarState(true);
+                else if (deltaX < 0 && isSidebarExpanded) setSidebarState(false);
+            }
+        }, { passive: true });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                document.getElementById('sidebarNav').classList.remove('-translate-x-full', 'translate-x-0');
+                document.getElementById('sidebarOverlay').classList.add('hidden');
+                setSidebarState(true);
+            } else { setSidebarState(false); }
+        });
+
+        async function startMobileAIScan() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { alert("Session 已過期！"); window.location.href = 'register.html'; return; }
+            const freshUserId = session.user.id;
+            let currentStudentName = "學生";
+            const nameDisplay = document.getElementById('userEmailDisplay');
+            if (nameDisplay && nameDisplay.innerText.includes("🎓 學生：")) {
+                currentStudentName = nameDisplay.innerText.replace("🎓 學生：", "").trim();
+            }
+            const encodedName = encodeURIComponent(currentStudentName);
+
+            // 偵測裝置：Android 用 deep link，電腦瀏覽器用 camera-demo.html
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            if (isAndroid) {
+                window.location.href = `disasterlms://scan?user_id=${freshUserId}&name=${encodedName}&mode=typhoon`;
+            } else {
+                window.location.href = `camera-demo.html?mode=typhoon&name=${encodedName}&user_id=${freshUserId}`;
+            }
+        }
+
+        async function fetchLatestProgress() {
+            if (!testUserId) return;
+            try {
+                let { data } = await supabaseClient
+                    .from('lms_disaster_progress')
+                    .select('*')
+                    .eq('user_id', testUserId)
+                    .order('updated_at', { ascending: false })
+                    .limit(20);
+
+                if (data && data.length > 0) {
+                    const matchedRow = data.find(row => {
+                        let missingArray = [];
+                        if (Array.isArray(row.missing_items)) { missingArray = row.missing_items; }
+                        else if (typeof row.missing_items === 'string' && row.missing_items.trim() !== '') {
+                            try { missingArray = JSON.parse(row.missing_items); } catch (e) { }
+                        }
+                        return missingArray[0] === `mode:${currentMode}`;
+                    });
+
+                    if (matchedRow) {
+                        updateScanUI(matchedRow);
+                    }
+                }
+            } catch (err) {
+                console.error("讀取 AI 掃描進度失敗:", err);
+            }
+        }
+
+        function updateScanUI(data) {
+            const area = document.getElementById('aiScanResultArea');
+            if (area) area.classList.remove('hidden');
+
+            const badge = document.getElementById('aiScanScoreBadge');
+            if (badge) badge.innerText = `整備度：${data.disaster_kit_score || 0}%`;
+
+            const fbText = document.getElementById('aiFeedbackText');
+            if (fbText) fbText.innerText = data.ai_feedback || "";
+
+            const mList = document.getElementById('missingItemsList');
+            const oList = document.getElementById('overstockedItemsList');
+
+            let missingArray = [];
+            if (Array.isArray(data.missing_items)) { missingArray = data.missing_items; }
+            else if (typeof data.missing_items === 'string' && data.missing_items.trim() !== '') {
+                try { missingArray = JSON.parse(data.missing_items); } catch (e) { missingArray = data.missing_items.split(','); }
+            }
+            missingArray = missingArray.filter(item => !item.startsWith("mode:"));
+
+            if (mList) {
+                mList.innerHTML = (missingArray.length > 0)
+                    ? missingArray.map(item => `<div>• ${item}</div>`).join('')
+                    : `<div class="text-emerald-400 font-bold">🎉 安全防颱配置完善！</div>`;
+            }
+
+            let overstockedArray = [];
+            if (Array.isArray(data.overstocked_items)) { overstockedArray = data.overstocked_items; }
+            else if (typeof data.overstocked_items === 'string' && data.overstocked_items.trim() !== '') {
+                try { overstockedArray = JSON.parse(data.overstocked_items); } catch (e) { overstockedArray = data.overstocked_items.split(','); }
+            }
+            if (oList) {
+                oList.innerHTML = (overstockedArray.length > 0)
+                    ? overstockedArray.map(item => `<div>• ${item}</div>`).join('')
+                    : `<div class="text-gray-400 italic">無安全隱患</div>`;
+            }
+        }
+
+        async function checkAuthAndInit() {
+            // 先嘗試用本地的 localStorage 立即顯示姓名，防止讀取延遲
+            const localName = localStorage.getItem("studentName");
+            if (localName) {
+                const el = document.getElementById("userEmailDisplay");
+                if (el) el.innerText = `🎓 學生：${localName}`;
+            }
+
+            try {
+                if (window.innerWidth >= 768) { setSidebarState(true); } else { setSidebarState(false); }
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) { window.location.href = 'register.html'; return; }
+                testUserId = session.user.id;
+
+                if (session && session.user) {
+                    const displayName = session.user.user_metadata.display_name || session.user.email.split('@')[0];
+                    localStorage.setItem('studentName', displayName);
+                    const el = document.getElementById('userEmailDisplay');
+                    if (el) el.innerText = `🎓 學生：${displayName}`;
+                }
+        
+
+                const { data } = await supabaseClient.from('lms_disaster_progress')
+                    .select('student_name').eq('user_id', testUserId).order('updated_at', { ascending: false }).limit(1);
+                const displayName = (data && data.length > 0 && data[0].student_name) ? data[0].student_name : "黃瀚霆";
+
+                const emailDisplay = document.getElementById('userEmailDisplay');
+                if (emailDisplay) emailDisplay.innerText = `🎓 學生：${displayName}`;
+
+                // 🚀 初始化載入動態 AI 題目與鏡頭監聽
+                initQuizUI();
+                fetchLatestProgress();
+                setInterval(fetchLatestProgress, 2000);
+            } catch (err) { console.error(err); }
+        }
+        window.addEventListener('DOMContentLoaded', checkAuthAndInit);
+
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = 'register.html';
+        }
+
+        async function submitInquiry() {
+            const inputEl = document.getElementById('userInquiryInput');
+            const btnEl = document.getElementById('sendInquiryBtn');
+            const responseBox = document.getElementById('inquiryResponseBox');
+            const responseText = document.getElementById('inquiryResponseText');
+
+            if (!inputEl.value.trim()) return;
+            const question = inputEl.value.trim();
+            btnEl.innerText = "⏳ AI 導師分析中...";
+            btnEl.disabled = true;
+
+            try {
+                const data = await apiFetch('/api/ask-tutor', {
+                    method: 'POST',
+                    body: JSON.stringify({ question, mode: currentMode })
+                });
+                responseBox.classList.remove('hidden');
+                document.getElementById('inquiryTime').innerText = new Date().toLocaleTimeString();
+                responseText.innerHTML = data.answer;
+            } catch (err) {
+                console.error("AI 導師聯絡失敗，啟用本地保底回覆", err);
+                responseBox.classList.remove('hidden');
+                document.getElementById('inquiryTime').innerText = new Date().toLocaleTimeString();
+
+                if (question.includes("膠帶") || question.includes("玻璃")) {
+                    responseText.innerHTML = `⚠️ <b>【官方手冊澄清：膠帶無法增加抗風力】</b>\n\n根據《颱洪災害防救手冊》，在玻璃上貼「X」字型膠帶<b>無法增加玻璃的抗風壓能力</b>。其主要作用是防止玻璃破裂時碎片飛散傷人。最佳防護是採用強化氣密窗。`;
+                } else if (question.includes("撤離") || question.includes("土石流")) {
+                    responseText.innerHTML = `🚨 <b>【災防法規：強制撤離】</b>\n\n依據《災害防救法》第24條，為保護人民生命安全，地方政府於災害發生之虞時，可劃設警戒區並進行<b>預防性強制撤離</b>。居住於土石流潛勢區的民眾，收到廣播應立即攜帶「緊急避難包」前往指定收容所。`;
+                } else {
+                    responseText.innerHTML = `🤖 <b>AI 導讀 (保底)：</b>\n\n收到您關於「${question}」的詢問。防颱重點在於：1. 事前清理排水溝 2. 準備7天份日常儲備物物資 3. 避免前往海邊觀浪或山區。`;
+                }
+            } finally {
+                btnEl.innerHTML = "<span>💬</span> 送出詢問 AI 導師";
+                btnEl.disabled = false;
+                inputEl.value = "";
+            }
+        }
+
+        async function calculateTyphoonScore() {
+            const checkboxes = document.querySelectorAll('.ty-check');
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const totalCount = checkboxes.length;
+            const scorePercent = Math.round((checkedCount / totalCount) * 100);
+
+            const badge = document.getElementById('typhoonScoreBadge');
+            badge.innerText = `安全防禦度：${scorePercent}%`;
+
+            if (scorePercent === 100) {
+                badge.className = "bg-green-950 text-green-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-green-900/40";
+                document.getElementById('typhoonSyncStatus').classList.remove('hidden');
+                await saveTyphoonProgress(checkedCount);
+            } else {
+                badge.className = "bg-teal-950 text-teal-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-teal-900/40";
+                document.getElementById('typhoonSyncStatus').classList.add('hidden');
+            }
+        }
+
+        async function saveTyphoonProgress(count) {
+            if (!testUserId) return;
+            try {
+                await supabaseClient.from('lms_disaster_progress')
+                    .update({ typhoon_completed_quizzes: count, updated_at: new Date().toISOString() })
+                    .eq('user_id', testUserId);
+            } catch (err) { console.error(err); }
+        }
+    </script>
+</body>
+
+</html>

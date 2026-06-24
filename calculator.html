@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧物資準備教室 - LMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .gradient-text { background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .no-select { -webkit-user-select: none; user-select: none; }
+        .tab-active { background-color: #0284c7; color: white; border-color: #38bdf8; }
+        .tab-inactive { background-color: #1e293b; color: #94a3b8; border-color: #334155; }
+        .sidebar-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex font-sans antialiased">
+
+    <aside id="sidebarNav" class="w-16 hover:w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col shrink-0 no-select sidebar-transition group relative z-50">
+        <div class="flex items-center gap-3 font-bold text-lg mb-8 overflow-hidden whitespace-nowrap pl-1">
+            <span class="text-xl">🛡️</span>
+            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-blue-400">防災學習 LMS</span>
+        </div>
+        
+        <nav class="space-y-4 flex-1 overflow-y-auto pr-1">
+            <div>
+                <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-2">主選單</div>
+                <a href="index.html" class="flex items-center gap-4 text-gray-400 hover:text-white p-2.5 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                    <span class="text-lg">🏠</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm">學習中控大廳</span>
+                </a>
+            </div>
+
+            <div>
+                <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-2">實體備料</div>
+                <a href="#" class="flex items-center gap-4 text-purple-400 bg-purple-950/40 p-2.5 rounded-xl border border-purple-900/30 whitespace-nowrap pl-2">
+                    <span class="text-lg">🧮</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm font-semibold">智慧物資準備</span>
+                </a>
+            </div>
+            
+            <div>
+                <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-2">核心災害教室</div>
+                <div class="space-y-1">
+                    <a href="earthquake.html" class="flex items-center gap-4 text-gray-400 hover:text-blue-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                        <span class="text-lg">🫨</span><span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm">地震應變教室</span>
+                    </a>
+                    <a href="typhoon.html" class="flex items-center gap-4 text-gray-400 hover:text-teal-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                        <span class="text-lg">🌀</span><span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm">颱洪整備教室</span>
+                    </a>
+                    <a href="fire.html" class="flex items-center gap-4 text-gray-400 hover:text-red-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                        <span class="text-lg">🔥</span><span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm">火災安全逃生</span>
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-2">生活安全教室</div>
+                <div class="space-y-1">
+                    <a href="home-safety.html" class="flex items-center gap-4 text-gray-400 hover:text-yellow-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                        <span class="text-lg">🚪</span><span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm">居家綜合安全</span>
+                    </a>
+                    <a href="first-aid.html" class="flex items-center gap-4 text-gray-400 hover:text-emerald-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                        <span class="text-lg">🚑</span><span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm">民眾急救自救</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="border-t border-slate-800 pt-4 mt-auto overflow-hidden">
+            <div id="userEmailDisplay" class="text-xs text-gray-400 mb-3 truncate pl-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">🎓 學生：讀取中...</div>
+            <button onclick="logout()" class="w-full text-left text-red-400 hover:text-red-300 text-sm font-bold flex items-center gap-4 p-2.5 rounded-xl transition pl-2 hover:bg-red-500/10">
+                <span class="text-lg">🚪</span>
+                <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">登出系統</span>
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto w-full">
+        <div class="max-w-4xl mx-auto w-full">
+            
+            <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-black mb-2 gradient-text">🧮 智慧物資準備教室</h1>
+                    <p class="text-gray-400 text-[11px] md:text-xs">依照政府指南，分為「抓了就跑的避難包」與「宅在家的日常儲備」。</p>
+                </div>
+                <span class="bg-sky-950 text-sky-400 text-xs px-3 py-1 rounded-full font-bold border border-sky-900/50 no-select whitespace-nowrap">消防署標準對齊</span>
+            </header>
+
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl mb-6 flex flex-col md:flex-row gap-6 items-center">
+                <div class="flex-1">
+                    <h2 class="text-md font-bold text-gray-200 mb-2">📖 課本參閱：緊急避難包指南</h2>
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        準備緊急避難包是防災的第一步。請參考消防署官方指南，確認避難包內需準備的個人物品、證件與乾糧。
+                    </p>
+                </div>
+                <a href="files/緊急避難包.pdf" target="_blank" class="w-full md:w-auto bg-purple-600 hover:bg-purple-500 text-white font-bold py-3.5 px-5 rounded-xl shadow-[0_0_15px_rgba(147,51,234,0.3)] transition-all flex flex-col items-center justify-center gap-1 group cursor-pointer border border-purple-400 text-sm whitespace-nowrap">
+                    <span class="text-xl group-hover:scale-110 transition-transform">🎒</span>
+                    <span>開啟避難包指南</span>
+                </a>
+            </div>
+
+            <div class="flex gap-4 mb-6 no-select">
+                <button onclick="switchTab('evac')" id="tab-evac" class="flex-1 py-4 rounded-xl font-bold border shadow-lg transition-all tab-active flex flex-col items-center justify-center gap-1 text-xs md:text-sm">
+                    <span class="text-xl">🎒</span>
+                    <span>緊急避難包 (1~3天)</span>
+                    <span class="text-[10px] font-normal opacity-80 hidden md:inline">抓了就跑，支援 AI 盤點</span>
+                </button>
+                <button onclick="switchTab('home')" id="tab-home" class="flex-1 py-4 rounded-xl font-bold border shadow-lg transition-all tab-inactive flex flex-col items-center justify-center gap-1 hover:bg-slate-800 text-xs md:text-sm">
+                    <span class="text-xl">🏡</span>
+                    <span>日常居家儲備 (7天)</span>
+                    <span class="text-[10px] font-normal opacity-80 hidden md:inline">災後宅家，採買參考清單</span>
+                </button>
+            </div>
+
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2.5 no-select">👨‍👩‍👧 家庭同住總人數</label>
+                        <div class="grid grid-cols-5 gap-2" id="peopleSelector"></div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2.5 no-select">🐾 是否有毛小孩 (貓/狗)</label>
+                        <div class="flex gap-3">
+                            <button onclick="setPet(true)" id="petBtn-true" class="flex-1 py-2.5 font-bold rounded-xl bg-slate-800 text-gray-400 border border-slate-700/80 transition cursor-pointer text-sm">有寵物 🐶</button>
+                            <button onclick="setPet(false)" id="petBtn-false" class="flex-1 py-2.5 font-bold rounded-xl bg-sky-600 text-white border border-sky-500 transition cursor-pointer text-sm">無寵物 🚫</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 p-4 md:p-6 rounded-2xl border border-slate-800 shadow-2xl">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-6 no-select">
+                    <h2 class="text-xs md:text-sm font-bold text-gray-300 flex items-center gap-2" id="listTitle">🎒 緊急避難包清單 (備齊打勾)</h2>
+                    <span id="summaryBadge" class="text-[10px] md:text-xs font-bold bg-emerald-950 text-emerald-400 px-3 py-0.5 rounded-full border border-emerald-900/50"></span>
+                </div>
+
+                <div id="dynamicListContent" class="space-y-6"></div>
+
+                <div id="scanActionArea" class="pt-6 mt-6 border-t border-slate-800">
+                    <a id="iosDeepLinkBtn" class="block text-center w-full bg-slate-800 text-gray-500 font-bold py-4 rounded-xl text-sm md:text-md transition pointer-events-none cursor-not-allowed no-select">
+                        🔒 請先在上方打勾確認備齊桌上實物
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const supabaseUrl = 'https://ovyygcsuiwwbgoywplbq.supabase.co';
+        const supabaseKey = 'sb_publishable_Rfekybrmzpc7rjaHAq5Q8Q_ChnHYcAI'; 
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        let testUserId = null;
+        let currentTab = 'evac'; 
+        let currentPeople = 1;
+        let hasPet = false;
+
+        async function checkAuthAndInit() {
+            // 先嘗試用本地的 localStorage 立即顯示姓名，防止讀取延遲
+            const localName = localStorage.getItem('studentName');
+            if (localName) {
+                const el = document.getElementById('userEmailDisplay');
+                if (el) el.innerText = `🎓 學生：${localName}`;
+            }
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) { window.location.href = 'register.html'; return; }
+                testUserId = session.user.id;
+
+                // 同步最新 metadata 至 localStorage 與側邊欄
+                if (session.user) {
+                    const displayName = session.user.user_metadata.display_name || session.user.email.split('@')[0];
+                    localStorage.setItem('studentName', displayName);
+                    const el = document.getElementById('userEmailDisplay');
+                    if (el) el.innerText = `🎓 學生：${displayName}`;
+                }
+
+                renderPeopleSelector();
+                updateUI();
+            } catch (err) { console.error(err); }
+        }
+
+        window.addEventListener('DOMContentLoaded', checkAuthAndInit);
+
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'register.html';
+        }
+
+        function renderPeopleSelector() {
+            const container = document.getElementById('peopleSelector');
+            container.innerHTML = '';
+            for(let i=1; i<=5; i++) {
+                const btn = document.createElement('button');
+                btn.innerText = `${i} 人`;
+                btn.className = i === currentPeople 
+                    ? "py-2.5 font-bold rounded-xl text-center bg-sky-600 text-white border border-sky-500 shadow-lg shadow-sky-600/20 transition text-xs"
+                    : "py-2.5 font-bold rounded-xl text-center bg-slate-800 text-gray-400 border border-slate-700/80 hover:bg-slate-700 hover:text-white transition text-xs";
+                btn.onclick = () => { currentPeople = i; renderPeopleSelector(); updateUI(); };
+                container.appendChild(btn);
+            }
+        }
+
+        function setPet(status) {
+            hasPet = status;
+            document.getElementById('petBtn-true').className = status 
+                ? "flex-1 py-2.5 font-bold rounded-xl bg-orange-500 text-white border border-orange-400 transition cursor-pointer text-sm" 
+                : "flex-1 py-2.5 font-bold rounded-xl bg-slate-800 text-gray-400 border border-slate-700/80 transition cursor-pointer text-sm";
+            document.getElementById('petBtn-false').className = !status 
+                ? "flex-1 py-2.5 font-bold rounded-xl bg-sky-600 text-white border border-sky-500 transition cursor-pointer text-sm" 
+                : "flex-1 py-2.5 font-bold rounded-xl bg-slate-800 text-gray-400 border border-slate-700/80 transition cursor-pointer text-sm";
+            updateUI();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-evac').className = tab === 'evac' 
+                ? "flex-1 py-4 rounded-xl font-bold border shadow-lg transition-all tab-active flex flex-col items-center justify-center gap-1 text-xs md:text-sm"
+                : "flex-1 py-4 rounded-xl font-bold border shadow-lg transition-all tab-inactive flex flex-col items-center justify-center gap-1 hover:bg-slate-800 text-xs md:text-sm";
+            document.getElementById('tab-home').className = tab === 'home' 
+                ? "flex-1 py-4 rounded-xl font-bold border shadow-lg transition-all tab-active flex flex-col items-center justify-center gap-1 text-xs md:text-sm"
+                : "flex-1 py-4 rounded-xl font-bold border shadow-lg transition-all tab-inactive flex flex-col items-center justify-center gap-1 hover:bg-slate-800 text-xs md:text-sm";
+            updateUI();
+        }
+
+        function checkEvacStatus() {
+            const checkboxes = document.querySelectorAll('.evac-check');
+            const btn = document.getElementById('iosDeepLinkBtn');
+            if(!btn) return;
+
+            const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(c => c.checked);
+
+            if (allChecked) {
+                btn.classList.remove('pointer-events-none', 'bg-slate-800', 'text-gray-500', 'cursor-not-allowed');
+                btn.classList.add('bg-indigo-600', 'hover:bg-indigo-500', 'text-white', 'shadow-[0_0_20px_rgba(79,70,229,0.5)]', 'animate-pulse', 'cursor-pointer');
+                btn.innerHTML = "🚀 備料完成！喚醒 iOS 智慧辨識鏡頭";
+                // 偵測裝置：Android 用 deep link，電腦瀏覽器用 camera-demo.html
+                const isAndroid = /Android/i.test(navigator.userAgent);
+                if (isAndroid) {
+                    btn.href = "disasterlms://opencamera";
+                } else {
+                    const nameEl = document.getElementById('userEmailDisplay');
+                    let studentName = '學生';
+                    if (nameEl && nameEl.innerText.includes('🎓')) {
+                        studentName = nameEl.innerText.replace('🎓 學生：', '').trim();
+                    }
+                    btn.href = `camera-demo.html?mode=general&name=${encodeURIComponent(studentName)}`;
+                    btn.target = '_self';
+                }
+                
+                // 老大！這裡幫你綁定勾選完成時同步寫入雲端資料庫分數的動作，打通生態鏈
+                saveProgress();
+            } else {
+                btn.removeAttribute('href');
+                btn.className = "block text-center w-full bg-slate-800 text-gray-500 font-bold py-4 rounded-xl text-sm md:text-md transition pointer-events-none cursor-not-allowed no-select";
+                btn.innerHTML = "🔒 請先在上方打勾確認備齊桌上實物";
+            }
+        }
+
+        async function saveProgress() {
+            if (!testUserId) return;
+            try {
+                await supabaseClient.from('lms_disaster_progress')
+                    .update({ disaster_kit_score: 100, updated_at: new Date().toISOString() })
+                    .eq('user_id', testUserId);
+            } catch (err) { console.error(err); }
+        }
+
+        function updateUI() {
+            const contentDiv = document.getElementById('dynamicListContent');
+            const scanArea = document.getElementById('scanActionArea');
+            const title = document.getElementById('listTitle');
+            const badge = document.getElementById('summaryBadge');
+
+            if (currentTab === 'evac') {
+                title.innerHTML = "🎒 緊急避難包清單 (準備 1~3 天份)";
+                badge.innerText = `${currentPeople}人 / 避難包配置${hasPet ? ' (含寵物)' : ''}`;
+                scanArea.style.display = 'block';
+
+                let html = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${createEvacCard("💧 輕便飲用水", "每人 2 瓶 (600ml)", currentPeople * 2 + " 瓶")}
+                        ${createEvacCard("🍫 高熱量乾糧", "營養棒、巧克力、口糧餅乾", "約 " + (currentPeople * 3) + " 包")}
+                        ${createEvacCard("🔦 逃生照明與求救", "手電筒、高分貝哨子", "各 " + currentPeople + " 個")}
+                        ${createEvacCard("🔋 通訊與電源", "充飽的行動電源與充電線", currentPeople + " 組")}
+                        ${createEvacCard("🩹 基礎急救與防護", "外傷藥膏、OK蹦、醫用口罩", "1 個小包")}
+                        ${createEvacCard("📄 重要證件與現金", "身分證/健保卡影本、少許現金", "1 個防水夾鏈袋")}
+                        ${createEvacCard("🧣 輕便保暖", "鋁箔保暖毯或輕便雨衣", currentPeople + " 件")}
+                        ${hasPet ? createEvacCard("🐶 寵物逃生包", "寵物外出繩、提籠、3天份乾糧", "1 份") : ''}
+                    </div>
+                    <div class="text-[10px] text-gray-500 mt-4 text-center">💡 避難包原則：重量需能背著奔跑，請擺在桌上後打勾準備掃描。</div>
+                `;
+                contentDiv.innerHTML = html;
+                checkEvacStatus(); 
+
+            } else {
+                title.innerHTML = "🏡 日常居家儲備清單 (準備 7 天份)";
+                badge.innerText = `${currentPeople}人 / 7天份居家配置${hasPet ? ' (含寵物)' : ''}`;
+                scanArea.style.display = 'none'; 
+
+                let html = `
+                    <div class="space-y-4">
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                            <h3 class="text-sky-400 font-bold text-sm mb-3">🔹 民生飲水與儲備糧食</h3>
+                            <ul class="space-y-3 text-sm text-gray-300">
+                                <li class="flex justify-between items-center border-b border-slate-800/50 pb-2">
+                                    <span>💧 桶裝飲用水 (每人每日3L)</span>
+                                    <span class="font-bold text-white">${currentPeople * 3 * 7} 公升</span>
+                                </li>
+                                <li class="flex justify-between items-center border-b border-slate-800/50 pb-2">
+                                    <span>🌾 簡單煮主食 (米、麵條、泡麵)</span>
+                                    <span class="font-bold text-white">約 ${currentPeople * 7} 天份</span>
+                                </li>
+                                <li class="flex justify-between items-center pb-1">
+                                    <span>🥫 罐頭與調理包 (提供蛋白質與配菜)</span>
+                                    <span class="font-bold text-white">約 ${currentPeople * 14} 罐/包</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                            <h3 class="text-teal-400 font-bold text-sm mb-3">🔹 生活耗材與衛生防護</h3>
+                            <ul class="space-y-3 text-sm text-gray-300">
+                                <li class="flex justify-between items-center border-b border-slate-800/50 pb-2">
+                                    <span>🔥 卡式瓦斯爐 & 瓦斯罐</span>
+                                    <span class="font-bold text-white">爐 1 台 / 瓦斯罐 ${Math.ceil(currentPeople * 7 * 0.75)} 瓶</span>
+                                </li>
+                                <li class="flex justify-between items-center border-b border-slate-800/50 pb-2">
+                                    <span>🧻 衛生紙與大垃圾袋 (斷水時廁所備用)</span>
+                                    <span class="font-bold text-white">約 ${Math.ceil(currentPeople * 7 / 5)} 串 / 1 包</span>
+                                </li>
+                                <li class="flex justify-between items-center pb-1">
+                                    <span>💡 LED 提燈與備用電池</span>
+                                    <span class="font-bold text-white">提燈 ${Math.ceil(currentPeople/2)} 盞</span>
+                                </li>
+                            </ul>
+                        </div>
+                `;
+
+                if (hasPet) {
+                    html += `
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                            <h3 class="text-orange-400 font-bold text-sm mb-3">🔹 寵物居家儲備</h3>
+                            <ul class="space-y-3 text-sm text-gray-300">
+                                <li class="flex justify-between items-center border-b border-slate-800/50 pb-2">
+                                    <span>🐶 寵物乾糧/罐頭</span>
+                                    <span class="font-bold text-white">足夠 7 天的份量</span>
+                                </li>
+                                <li class="flex justify-between items-center pb-1">
+                                    <span>💩 貓砂 / 寵物尿布墊</span>
+                                    <span class="font-bold text-white">至少 1~2 包備品</span>
+                                </li>
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                html += `<div class="text-[10px] text-gray-500 mt-4 text-center">💡 居家儲備原則：利用日常空間存放，採買時作為清單參考即可。</div></div>`;
+                contentDiv.innerHTML = html;
+            }
+        }
+
+        function createEvacCard(title, desc, qty) {
+            return `
+                <label class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 hover:border-slate-600 transition flex items-center gap-3 cursor-pointer select-none">
+                    <input type="checkbox" onchange="checkEvacStatus()" class="evac-check w-5 h-5 rounded border-slate-600 bg-slate-800 text-sky-500 focus:ring-0 cursor-pointer">
+                    <div class="flex-1 min-w-0">
+                        <span class="text-gray-300 text-sm font-bold block truncate">${title}</span>
+                        <span class="text-xs text-gray-500 block mt-0.5 truncate">${desc}</span>
+                    </div>
+                    <div class="text-md font-black text-sky-400 whitespace-nowrap pl-2">${qty}</div>
+                </label>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智慧安檢鏡頭 - 防災 LMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+
+        #videoFeed {
+            width: 100%;
+            max-height: 360px;
+            object-fit: cover;
+            border-radius: 12px;
+            transform: scaleX(-1);
+        }
+        .scan-overlay { position: absolute; inset: 0; border-radius: 12px; pointer-events: none; }
+        .scan-line {
+            position: absolute; left: 0; right: 0; height: 2px;
+            background: linear-gradient(to right, transparent, #ef4444, #f97316, #ef4444, transparent);
+            box-shadow: 0 0 12px #ef4444;
+            animation: scanDown 2.5s ease-in-out infinite;
+        }
+        @keyframes scanDown {
+            0%   { top: 5%;  opacity: 1; }
+            90%  { top: 92%; opacity: 1; }
+            100% { top: 92%; opacity: 0; }
+        }
+        .corner-tl, .corner-tr, .corner-bl, .corner-br {
+            position: absolute; width: 24px; height: 24px;
+            border-color: #ef4444; border-style: solid; opacity: 0.9;
+        }
+        .corner-tl { top: 10px; left: 10px;   border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+        .corner-tr { top: 10px; right: 10px;  border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+        .corner-bl { bottom: 10px; left: 10px;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+        .corner-br { bottom: 10px; right: 10px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+        .pulse-dot { animation: pulse 1.2s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .result-card { animation: slideUp 0.4s ease-out forwards; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .progress-bar-fill { transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-start py-8 px-4">
+
+    <!-- 頂部標題 -->
+    <div class="w-full max-w-2xl mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-black text-white flex items-center gap-2">
+                    <span id="modeIcon">📷</span>
+                    <span id="modeTitle">AI 智慧安檢鏡頭</span>
+                </h1>
+                <p class="text-xs text-gray-400 mt-0.5" id="modeSubtitle">正在連線至鏡頭...</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-red-500 pulse-dot" id="statusDot"></span>
+                <span class="text-xs text-red-400 font-bold" id="statusLabel">初始化</span>
+            </div>
+        </div>
+        <div class="mt-3 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 flex items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-3">
+                <span class="text-gray-400">🎓 掃描帳號：</span>
+                <span class="text-emerald-400 font-bold" id="studentNameDisplay">讀取中...</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400">🎬 示範模式：</span>
+                <button type="button" id="demoModeToggleBtn" onclick="toggleDemoMode()"
+                    class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-gray-300 px-2.5 py-1 rounded-lg text-[10px] font-bold transition active:scale-95 flex items-center gap-1">
+                    <span id="demoToggleIndicator" class="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+                    <span id="demoToggleText">關閉</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 鏡頭視窗 -->
+    <div class="w-full max-w-2xl mb-4">
+        <div class="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl" style="min-height:200px">
+            <video id="videoFeed" autoplay muted playsinline></video>
+            <!-- 隱藏的 canvas 用來截圖 -->
+            <canvas id="captureCanvas" style="display:none"></canvas>
+
+            <!-- 掃描覆蓋層 -->
+            <div class="scan-overlay" id="scanOverlay" style="display:none">
+                <div class="scan-line"></div>
+                <div class="corner-tl"></div><div class="corner-tr"></div>
+                <div class="corner-bl"></div><div class="corner-br"></div>
+                <div class="absolute bottom-3 left-0 right-0 flex justify-center">
+                    <div class="bg-black/70 backdrop-blur-sm text-red-400 text-[11px] font-bold px-3 py-1 rounded-full border border-red-900/50 flex items-center gap-1.5">
+                        <span class="pulse-dot">●</span> <span id="scanStatusText">Gemini Vision AI 正在分析影像...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 鏡頭未開啟 -->
+            <div id="noCamera" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 rounded-2xl">
+                <div class="text-5xl mb-4">📷</div>
+                <p class="text-gray-400 text-sm font-semibold">正在請求鏡頭存取權限...</p>
+                <p class="text-gray-600 text-xs mt-1">請在瀏覽器允許使用攝影機</p>
+            </div>
+
+            <!-- 閃光 -->
+            <div id="flashEffect" class="absolute inset-0 bg-white pointer-events-none opacity-0 rounded-2xl transition-opacity duration-150"></div>
+        </div>
+
+        <!-- 分析進度條 -->
+        <div id="progressContainer" class="hidden mt-3">
+            <div class="flex justify-between text-[11px] text-gray-500 mb-1">
+                <span>Gemini Vision 分析進度</span>
+                <span id="progressLabel">準備中...</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-2">
+                <div id="progressBar" class="progress-bar-fill h-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Demo 情境控制面板 -->
+        <div id="demoControls" class="hidden mt-4 bg-slate-900/90 border border-emerald-900/50 rounded-2xl p-4 backdrop-blur-md">
+            <div class="text-xs font-bold text-emerald-400 mb-2.5 flex items-center gap-1.5">
+                <span>🎬 Demo 模擬情境設定</span>
+                <span class="text-[10px] text-gray-500 font-normal">（此模式下拍照將模擬以下選定結果，無須 API）</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <button type="button" onclick="selectDemoScenario('perfect')" id="btnDemo_perfect"
+                    class="demo-scenario-btn bg-slate-800/80 border border-slate-700 text-white p-2.5 rounded-xl text-left transition active:scale-95">
+                    <div class="text-[11px] font-bold text-emerald-400 flex items-center justify-between">
+                        <span>🏆 完美整備</span>
+                        <span>95分</span>
+                    </div>
+                    <div class="text-[9px] text-gray-400 mt-1 line-clamp-1">物資齊全固定完好</div>
+                </button>
+                <button type="button" onclick="selectDemoScenario('partial')" id="btnDemo_partial"
+                    class="demo-scenario-btn ring-2 ring-emerald-500 bg-emerald-950/20 border-emerald-500/50 text-white p-2.5 rounded-xl text-left transition active:scale-95">
+                    <div class="text-[11px] font-bold text-orange-400 flex items-center justify-between">
+                        <span>⚠️ 尚需補強</span>
+                        <span>68分</span>
+                    </div>
+                    <div class="text-[9px] text-gray-400 mt-1 line-clamp-1">部分缺失需小補強</div>
+                </button>
+                <button type="button" onclick="selectDemoScenario('poor')" id="btnDemo_poor"
+                    class="demo-scenario-btn bg-slate-800/80 border border-slate-700 text-white p-2.5 rounded-xl text-left transition active:scale-95">
+                    <div class="text-[11px] font-bold text-red-400 flex items-center justify-between">
+                        <span>🚨 嚴重不足</span>
+                        <span>15分</span>
+                    </div>
+                    <div class="text-[9px] text-gray-400 mt-1 line-clamp-1">無關照片/人像自拍</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="w-full max-w-2xl flex gap-3 mb-6">
+        <button id="captureBtn" onclick="captureAndAnalyze()" disabled
+            class="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl transition flex items-center justify-center gap-2 text-sm shadow-lg shadow-red-600/20 active:scale-95">
+            <span id="captureBtnIcon">📸</span>
+            <span id="captureBtnText">等待鏡頭...</span>
+        </button>
+        <button onclick="window.history.back()"
+            class="bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold py-4 px-6 rounded-2xl transition text-sm active:scale-95">
+            ← 返回
+        </button>
+    </div>
+
+    <!-- AI 分析結果 -->
+    <div id="resultArea" class="hidden w-full max-w-2xl space-y-4 result-card">
+
+        <!-- 評分卡 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-bold text-white flex items-center gap-2">🤖 Gemini Vision AI 分析報告</h2>
+                <span id="scoreLabel" class="text-xs font-bold px-3 py-1 rounded-full border"></span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-3 mb-2">
+                <div id="scoreBar" class="h-3 rounded-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-1000" style="width:0%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500">
+                <span>整備度</span>
+                <span id="scoreValue" class="font-bold text-white">--</span>
+            </div>
+        </div>
+
+        <!-- AI 建議 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <h3 class="text-xs font-bold text-orange-400 mb-3 flex items-center gap-1.5">💡 Gemini AI 專家優化建議</h3>
+            <p id="aiFeedback" class="text-sm text-gray-300 leading-relaxed"></p>
+        </div>
+
+        <!-- 缺失 & 隱患 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-900 border border-red-900/30 rounded-2xl p-4 shadow-xl">
+                <h3 class="text-xs font-bold text-red-400 mb-3">❌ AI 識別出的缺失項目</h3>
+                <div id="missingList" class="space-y-1.5 text-xs text-gray-300"></div>
+            </div>
+            <div class="bg-slate-900 border border-yellow-900/30 rounded-2xl p-4 shadow-xl">
+                <h3 class="text-xs font-bold text-yellow-400 mb-3">⚠️ 安全隱患提醒</h3>
+                <div id="hazardList" class="space-y-1.5 text-xs text-gray-300"></div>
+            </div>
+        </div>
+
+        <!-- Supabase 同步狀態 -->
+        <div id="syncStatusBox" class="bg-emerald-950/30 border border-emerald-900/40 rounded-2xl p-4 text-center hidden">
+            <div class="text-emerald-400 font-bold text-sm mb-1">🚀 分析結果已同步至 LMS 資料庫</div>
+            <div class="text-gray-500 text-xs">請返回 index.html 學習大廳，分數與建議已即時更新</div>
+        </div>
+        <div id="syncErrorBox" class="bg-red-950/30 border border-red-900/40 rounded-2xl p-4 text-center hidden">
+            <div class="text-red-400 font-bold text-sm mb-1">⚠️ 資料庫同步失敗（本地展示模式）</div>
+            <div class="text-gray-500 text-xs" id="syncErrorMsg">請確認 Supabase 連線或重新登入</div>
+        </div>
+
+        <button onclick="resetScan()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl transition text-sm active:scale-95">
+            🔄 重新掃描
+        </button>
+    </div>
+
+    <script>
+        // ── Supabase 初始化 ───────────────────────────────────────────────────
+        const supabaseUrl  = 'https://ovyygcsuiwwbgoywplbq.supabase.co';
+        const supabaseKey  = 'sb_publishable_Rfekybrmzpc7rjaHAq5Q8Q_ChnHYcAI';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        const GEMINI_API_KEY = 'AIzaSyB0nqEdU_txzStkTBfhK95E5qbWA6YXpRw';
+
+        // ── URL 參數 ──────────────────────────────────────────────────────────
+        const params      = new URLSearchParams(window.location.search);
+        const mode        = params.get('mode') || 'general';
+        let studentName   = decodeURIComponent(params.get('name') || '');
+        if (!studentName || studentName === '學生' || studentName === 'null' || studentName === 'undefined') {
+            studentName   = localStorage.getItem('studentName') || '學生';
+        }
+        const urlUserId   = params.get('user_id') || '';
+
+        // ── 模式設定 ──────────────────────────────────────────────────────────
+        const modeConfig = {
+            fire:         { icon:'🔥', title:'AI 居家防火安檢鏡頭',   subtitle:'拍攝您的居家環境，AI 即時評估防火安全等級' },
+            typhoon:      { icon:'🌀', title:'AI 防颱整備安檢鏡頭',   subtitle:'拍攝您準備的防颱物資，AI 判斷整備完整度' },
+            'home-safety':{ icon:'🚪', title:'AI 居家綜合安全鏡頭',   subtitle:'拍攝居家環境，AI 識別潛在安全隱患' },
+            earthquake:   { icon:'🫨', title:'AI 地震防災安檢鏡頭',   subtitle:'拍攝居家固定狀況與避難包，AI 評估地震整備度' },
+            general:      { icon:'📦', title:'AI 備料安檢鏡頭',       subtitle:'拍攝您的防災備料，AI 一秒盤點整備狀況' },
+        };
+
+        // ── 每個模式的 Gemini 分析 Prompt ────────────────────────────────────
+        const modePrompts = {
+            fire: `你是台灣消防署認證的居家防火安全評估 AI。請分析這張照片中的居家環境，評估防火安全整備程度。
+請根據「是否有住宅用火災警報器（住警器）」、「是否有滅火器」、「電線是否整齊無老化」、「逃生通道是否暢通」、「是否有易燃雜物危險堆積」等指標進行評估。
+如果照片中看不到與防火相關的物品（例如自拍），請給予 10~25 分的低分，並說明照片中未能偵測到任何防火設備。`,
+
+            typhoon: `你是台灣消防署認證的颱風防災整備評估 AI。請分析這張照片中可見的防颱物資。
+請根據「飲用水儲備量」、「緊急食糧」、「手電筒或照明設備」、「急救包」、「收音機」、「避難包」等物資是否出現在照片中進行評估。
+如果照片中看不到任何防颱物資（例如自拍或空房間），請給予 5~20 分的低分，說明未偵測到防颱備料。`,
+
+            'home-safety': `你是台灣內政部認證的居家安全評估 AI。請分析這張照片中的居家環境安全狀況。
+請根據「浴室防滑設施」、「電器安全」、「熱水器通風」、「走廊暢通無雜物」、「銳角家具防護」等指標評估。
+如果照片中無法判斷居家安全狀況（例如自拍），請給予 10~20 分，說明照片中無居家環境資訊。`,
+
+            earthquake: `你是台灣消防署認證的地震防災整備評估 AI。請分析這張照片中的地震防災整備狀況。
+請根據「大型家具是否有L型固定」、「高處是否有易碎品」、「是否有緊急避難包（含水、食物、手電筒等）」、「逃生路線是否暢通」等指標進行評估。
+如果照片中看不到與地震防災相關的物品（例如自拍），請給予 5~15 分，說明未偵測到地震防災整備品。`,
+
+            general: `你是台灣消防署認證的防災備料評估 AI。請分析這張照片中可見的防災備料物資清單整備狀況。
+請根據照片中實際可見的物品（飲用水、緊急食糧、急救包、手電筒、藥品、口罩、收音機、避難包等）進行評分。
+重要：如果照片中是人物自拍、空房間或完全沒有防災物資，請給予 0~15 分的極低分數，並明確說明「照片中未偵測到任何防災備料物資」。
+不可因為「整體居家環境看起來整潔」就給高分，評分必須完全基於照片中實際可見的防災物資。`,
+        };
+
+        const basePromptSuffix = `
+
+請用繁體中文回答，並以 JSON 格式輸出，包含以下欄位：
+{
+  "score": 整數（0-100，嚴格根據實際看到的物資評分，沒有物資就給低分），
+  "feedback": "100~150字的具體AI建議，說明偵測到什麼、缺少什麼、如何改善",
+  "missing_items": ["未偵測到的缺失物資1", "缺失物資2", ...],
+  "hazards": ["識別到的安全隱患1", "隱患2", ...]
+}
+
+評分原則：
+- 0-20分：完全沒有防災物資或照片無關（自拍/空房間）
+- 21-50分：極少量物資，嚴重不足
+- 51-70分：部分物資到位，仍有明顯缺失
+- 71-85分：大部分物資齊全，小幅補強即可
+- 86-100分：接近完整的整備清單，幾乎全部物資可見`;
+
+        let videoStream = null;
+        let analysisDone = false;
+        let currentUserId = urlUserId;
+
+        // ── Demo 模式與 Mock 資料 ────────────────────────────────────────────
+        let isDemoMode = false; // 預設關閉以回歸 API 連線的版本
+        let selectedScenario = 'partial'; // 預設為尚需補強
+
+        const MOCK_DATA = {
+            earthquake: {
+                perfect: {
+                    score: 95,
+                    feedback: "做得非常好！您的地震整備工作非常完善。偵測到高處重型家具均已使用L型固定架鎖緊，易碎物品已收納至低處櫃子。緊急避難包放置於門口明顯處，且內含充足的飲用水、乾糧、手電筒及醫療用品。防震保護措施堪稱模範，請繼續保持，並定期更換避難包中的過期食物與飲水。",
+                    missing_items: ["已完成所有準備工作"],
+                    hazards: ["避難包中的電池建議每半年更換一次以確保電力"]
+                },
+                partial: {
+                    score: 68,
+                    feedback: "您的地震整備工作已有一定基礎，但仍有改善空間。目前偵測到門口已備妥緊急避難包，但相片中客廳的高大櫥櫃上方堆放了易碎的花瓶與重物，且櫥櫃本身未做防倒固定，強震時極易傾倒造成受傷或阻礙逃生。建議儘速使用防震貼片或L型支架固定家具，並將高處重物移開。",
+                    missing_items: ["家具L型防倒固定器", "高處易碎品防護套件"],
+                    hazards: ["高大櫥櫃上方堆放重物與花瓶", "主逃生通道有雜物阻礙"]
+                },
+                poor: {
+                    score: 15,
+                    feedback: "警報！照片中未偵測到任何與地震防災整備相關的物品，僅識別到人像自拍或無關雜物。在地震來襲時，未固定的家具與缺乏避難包將使您面臨極高風險。請立刻依照「趴下、掩護、穩住」安全指引布置居家環境，並在門口準備一個包含飲用水、乾糧、手電筒與急救包的緊急避難包！",
+                    missing_items: ["緊急避難包", "家具固定防護", "防震防滑貼片", "手電筒及哨子"],
+                    hazards: ["照片無防災特徵（檢測為自拍/無關畫面）", "缺乏任何地震防護準備"]
+                }
+            },
+            typhoon: {
+                perfect: {
+                    score: 96,
+                    feedback: "防颱整備非常完美！照片中清楚偵測到充沛的儲備飲用水（滿足每人每日3公升共三日份）、手電筒、行動電源、急救箱以及足夠的防颱罐頭與乾糧。窗戶防護良好，周邊無易落物品。這是一個極佳的家庭防颱物資典範！",
+                    missing_items: ["已完成所有準備工作"],
+                    hazards: ["手電筒與行動電源請隨時保持滿電狀態"]
+                },
+                partial: {
+                    score: 65,
+                    feedback: "防颱物資已有初步準備，但仍有安全遺漏。偵測到有部分飲用水與手電筒，但並未看見急救包、收音機以及充足的常溫乾糧。颱風天容易因強風豪雨導致斷水斷電，甚至通訊中斷，強烈建議補齊緊急收音機與急救箱，以利第一時間獲取官方災情資訊及進行傷口處理。",
+                    missing_items: ["急救箱/急救包", "防災收音機", "充足儲備乾糧"],
+                    hazards: ["飲用水儲備量不足（建議備妥3天份）", "陽台雜物未清理"]
+                },
+                poor: {
+                    score: 10,
+                    feedback: "防颱整備嚴重不足！照片中無法辨識出任何防颱物資（如飲用水、手電筒、急救包等），疑似為人物自拍或無關畫面。颱風來襲可能伴隨斷水斷電與停班停課，請務必在颱風登陸前，依清單備妥3天份的水、食物，並將陽台盆栽移入室內，確保生命財產安全。",
+                    missing_items: ["3天份防颱飲用水", "緊急乾糧與罐頭", "手電筒與照明燈", "急救包與常用藥物"],
+                    hazards: ["照片無防災特徵（檢測為自拍/無關畫面）", "未進行任何防颱物資儲備"]
+                }
+            },
+            'home-safety': {
+                perfect: {
+                    score: 93,
+                    feedback: "居家安全檢視結果優異！照片中的客廳與走廊通道十分暢通，無雜物堆積；熱水器裝設於通風極佳的陽台，且插座周圍保持乾淨無超載。浴室也清晰可見裝有防滑扶手與鋪設防滑墊，大幅降低了跌倒與一氧化碳中毒的風險。請繼續保持優良習慣！",
+                    missing_items: ["已完成所有準備工作"],
+                    hazards: ["插座延長線建議使用具備過載保護之合格商品"]
+                },
+                partial: {
+                    score: 66,
+                    feedback: "您的居家環境有部分安全保護，但仍存在隱患。雖然通道暢通，但照片中浴室地板濕滑且無防滑貼片，易發生滑倒意外；另外，廚房插座插滿高功率電器，未使用安全延長線，容易因過載釀成火災。建議增設防滑墊，並分流高耗電電器以確保安全。",
+                    missing_items: ["浴室防滑貼片/防滑墊", "過載保護安全延長線"],
+                    hazards: ["高功率插座使用過載", "浴室濕滑且缺乏扶手"]
+                },
+                poor: {
+                    score: 12,
+                    feedback: "居家安全警報！照片中未偵測到可用的居家安全評估特徵，僅識別到人物自拍照或無關影像。溫馨提醒：居家環境的熱水器通風、浴室防滑、電線插座整齊度與走廊順暢度，是預防意外（如一氧化碳中毒、跌倒、火災）的關鍵。請重新拍攝客廳、廚房或浴室等居家環境，以便 AI 提供精準的安全評估。",
+                    missing_items: ["浴室防滑防跌設施", "合格的瓦斯通風檢測", "插座安全保護蓋", "防銳角防撞貼條"],
+                    hazards: ["照片無防災特徵（檢測為自拍/無關畫面）", "缺乏居家安全預防配置"]
+                }
+            },
+            fire: {
+                perfect: {
+                    score: 95,
+                    feedback: "居家防火整備做得十分出色！照片中清楚識別到已裝設住宅用火災警報器（住警器），並且備有檢驗合格的滅火器。逃生通道與大門口皆維持清空、無堆放雜物，易燃物品也妥善遠離廚房火源。這些配置能讓您在火災初期快速反應、安全逃生。做得太棒了！",
+                    missing_items: ["已完成所有準備工作"],
+                    hazards: ["滅火器壓力指針請定期檢查是否維持在綠色範圍"]
+                },
+                partial: {
+                    score: 62,
+                    feedback: "您的居家防火已有基本概念，但仍有關鍵安全漏洞。雖然相片中走廊通道無雜物阻礙，但天花板並未偵測到住宅用火災警報器（住警器），且家中缺乏基礎的滅火器。火災發生時濃煙擴散極快，住警器能在第一時間叫醒熟睡中的家人，請務必儘速購買並安裝於客廳與寢室！",
+                    missing_items: ["住宅用火災警報器 (住警器)", "家用合格滅火器"],
+                    hazards: ["缺乏早期火災警報設備", "缺乏初期滅火設備"]
+                },
+                poor: {
+                    score: 18,
+                    feedback: "防火整備嚴重缺乏！照片中沒有任何防火設備（如住警器、滅火器），僅偵測到自拍照或無關物體。火災是居家最常見的致命隱患，預防勝於治療。建議您儘快在天花板安裝住警器，並準備一具家用滅火器（PASS口訣：拉瞄壓掃），且切勿在走廊逃生口堆放易燃雜物！",
+                    missing_items: ["住宅用火災警報器 (住警器)", "合格滅火器", "防火毯/防煙面罩"],
+                    hazards: ["照片無防災特徵（檢測為自拍/無關畫面）", "缺乏任何居家防火硬體整備"]
+                }
+            },
+            general: {
+                perfect: {
+                    score: 97,
+                    feedback: "防災備料極為完整！照片中整齊擺放著完備的防災緊急避難包物資：包括大瓶飲用水、高熱量餅乾乾糧、醫療急救包、多功能手電筒（附哨子）、行動電源、常備藥品與可攜式收音機。所有核心物資皆已準備妥當，足夠應付突發災害發生後 72 小時的自救需求！",
+                    missing_items: ["已完成所有準備工作"],
+                    hazards: ["請注意定期檢查乾糧與飲水之保存期限"]
+                },
+                partial: {
+                    score: 60,
+                    feedback: "防災物資備料部分完成，但仍有缺漏。目前照片中可見避難包與手電筒、飲用水，但缺少了至關重要的醫療急救包、收音機及常用藥物。急救包能處理撤離時的擦傷，收音機能在通訊中斷時獲知外界資訊。請儘速補齊缺失物資，讓整備度更臻完善！",
+                    missing_items: ["醫療急救包 (包含OK繃、紗布)", "防災多功能收音機", "手套與求生哨"],
+                    hazards: ["藥物與食糧儲備不足", "缺少急救外傷護理用品"]
+                },
+                poor: {
+                    score: 15,
+                    feedback: "影像分析顯示防災備料嚴重不足！照片中沒有看見任何必備防災物資，疑似為人物自拍照或雜亂無章的景象。當面臨颱風、大地震等災害時，手邊若無避難包，生存威脅極高。請立即準備一個防水耐磨的雙肩後背包，並裝入 3 天份飲水、高熱量乾糧、手電筒、哨子與急救包，放置於門口以利隨時撤離！",
+                    missing_items: ["緊急避難背包", "防災飲用水 (3天份)", "高能量餅乾/罐頭", "手電筒與急救用品"],
+                    hazards: ["照片無防災特徵（檢測為自拍/無關畫面）", "完全沒有準備緊急避難包物資"]
+                }
+            }
+        };
+
+        function toggleDemoMode(forceState) {
+            const btn = document.getElementById('demoModeToggleBtn');
+            const indicator = document.getElementById('demoToggleIndicator');
+            const txt = document.getElementById('demoToggleText');
+            const panel = document.getElementById('demoControls');
+            
+            if (forceState !== undefined) {
+                isDemoMode = forceState;
+            } else {
+                isDemoMode = !isDemoMode;
+            }
+
+            if (isDemoMode) {
+                btn.className = "bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 px-2.5 py-1 rounded-lg text-[10px] font-bold transition active:scale-95 flex items-center gap-1 shadow-md shadow-emerald-500/10";
+                indicator.className = "w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot";
+                txt.innerText = "開啟";
+                panel.classList.remove('hidden');
+            } else {
+                btn.className = "bg-slate-800 hover:bg-slate-700 border border-slate-700 text-gray-300 px-2.5 py-1 rounded-lg text-[10px] font-bold transition active:scale-95 flex items-center gap-1";
+                indicator.className = "w-1.5 h-1.5 rounded-full bg-gray-500";
+                txt.innerText = "關閉";
+                panel.classList.add('hidden');
+            }
+        }
+
+        function selectDemoScenario(scen) {
+            selectedScenario = scen;
+            document.querySelectorAll('.demo-scenario-btn').forEach(btn => {
+                btn.className = "demo-scenario-btn bg-slate-800/80 border border-slate-700 text-white p-2.5 rounded-xl text-left transition active:scale-95";
+            });
+
+            const activeBtn = document.getElementById(`btnDemo_${scen}`);
+            if (activeBtn) {
+                activeBtn.className = "demo-scenario-btn ring-2 ring-emerald-500 bg-emerald-950/20 border-emerald-500/50 text-white p-2.5 rounded-xl text-left transition active:scale-95";
+            }
+        }
+
+        function showToast(message, type = 'warning') {
+            // 移除已有的 toast
+            const oldToast = document.querySelector('.custom-toast');
+            if (oldToast) oldToast.remove();
+
+            const toast = document.createElement('div');
+            toast.className = `custom-toast fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded-xl border shadow-2xl transition-all duration-300 transform translate-y-[-20px] opacity-0 ${
+                type === 'warning' 
+                    ? 'bg-yellow-950/95 border-yellow-800 text-yellow-400' 
+                    : 'bg-emerald-950/95 border-emerald-800 text-emerald-400'
+            }`;
+            toast.innerHTML = `
+                <span>${type === 'warning' ? '⚠️' : '✅'}</span>
+                <span class="text-xs font-bold">${message}</span>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-[-20px]', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-20px]', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4500);
+        }
+
+        const cfg = modeConfig[mode] || modeConfig.general;
+        document.getElementById('modeIcon').innerText  = cfg.icon;
+        document.getElementById('modeTitle').innerText  = cfg.title;
+        document.getElementById('modeSubtitle').innerText = cfg.subtitle;
+        document.getElementById('studentNameDisplay').innerText = studentName || '示範帳號';
+
+        // ── 取得 Supabase session（補充 user_id）────────────────────────────
+        async function getAuthUserId() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session) return session.user.id;
+            } catch(e) {}
+            return currentUserId;
+        }
+
+        // ── 啟動攝影機 ────────────────────────────────────────────────────────
+        async function startCamera() {
+            const statusLabel = document.getElementById('statusLabel');
+            const noCamera    = document.getElementById('noCamera');
+            const captureBtn  = document.getElementById('captureBtn');
+
+            try {
+                statusLabel.innerText = '開啓中...';
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } },
+                        audio: false
+                    });
+                } catch {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                }
+                videoStream = stream;
+                const video = document.getElementById('videoFeed');
+                video.srcObject = stream;
+                await video.play();
+
+                noCamera.style.display = 'none';
+                statusLabel.innerText = '鏡頭已連線';
+                statusLabel.className = 'text-xs text-emerald-400 font-bold';
+                document.getElementById('statusDot').style.background = '#34d399';
+                document.getElementById('statusDot').style.animation = 'none';
+
+                captureBtn.disabled = false;
+                document.getElementById('captureBtnText').innerText = '拍照，讓 Gemini AI 分析';
+                document.getElementById('captureBtnIcon').innerText = '📸';
+            } catch(err) {
+                console.error('Camera error:', err);
+                statusLabel.innerText = '無鏡頭存取';
+                noCamera.innerHTML = `
+                    <div class="text-5xl mb-4">📷</div>
+                    <p class="text-yellow-400 text-sm font-semibold">無法存取攝影機</p>
+                    <p class="text-gray-500 text-xs mt-1 text-center px-6">請允許瀏覽器攝影機權限，或點擊下方使用測試圖片模式</p>
+                    <button onclick="useTestMode()" class="mt-4 bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 px-5 rounded-xl text-xs transition">
+                        使用測試圖片模式
+                    </button>`;
+                captureBtn.disabled = false;
+                document.getElementById('captureBtnText').innerText = '使用測試圖片分析';
+                document.getElementById('captureBtnIcon').innerText = '🖼️';
+            }
+        }
+
+        // ── 測試圖片模式（無鏡頭備援）────────────────────────────────────────
+        function useTestMode() {
+            document.getElementById('noCamera').innerHTML = `
+                <div class="text-5xl mb-4">🖼️</div>
+                <p class="text-yellow-400 text-sm font-semibold">測試圖片模式</p>
+                <p class="text-gray-500 text-xs mt-1">將使用模擬的空房間照片進行 AI 分析（低分示範）</p>`;
+            document.getElementById('statusLabel').innerText = '測試模式';
+            document.getElementById('statusLabel').className = 'text-xs text-yellow-400 font-bold';
+        }
+
+        // ── 拍照並送 Gemini Vision ─────────────────────────────────────────
+        async function captureAndAnalyze() {
+            if (analysisDone) return;
+            analysisDone = true;
+
+            const captureBtn = document.getElementById('captureBtn');
+            captureBtn.disabled = true;
+            document.getElementById('captureBtnText').innerText = 'Gemini AI 分析中...';
+            document.getElementById('captureBtnIcon').innerText = '⏳';
+
+            // 閃光效果
+            const flash = document.getElementById('flashEffect');
+            flash.style.opacity = '0.8';
+            setTimeout(() => flash.style.opacity = '0', 180);
+
+            // 顯示掃描動畫和進度條
+            document.getElementById('scanOverlay').style.display = 'block';
+            document.getElementById('progressContainer').classList.remove('hidden');
+
+            // 擷取畫面為 base64
+            let imageBase64 = null;
+            const video  = document.getElementById('videoFeed');
+            const canvas = document.getElementById('captureCanvas');
+
+            if (video.srcObject && video.readyState >= 2) {
+                canvas.width  = video.videoWidth  || 640;
+                canvas.height = video.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                ctx.save();
+                // 反鏡像（因為 video 有 scaleX(-1)，截圖要修正回來）
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                ctx.restore();
+                // 壓縮到 jpeg 70% 品質以節省 token
+                imageBase64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+            }
+
+            // 更新進度
+            await setProgress(20, '擷取影像特徵...');
+            await delay(400);
+            await setProgress(45, '上傳至 Gemini Vision API...');
+
+            let result = null;
+            if (isDemoMode) {
+                // Demo 模式：直接載入預設的 Mock 數據
+                await delay(800); // 模擬網路延遲
+                const modeData = MOCK_DATA[mode] || MOCK_DATA.general;
+                result = modeData[selectedScenario] || modeData.partial;
+            } else {
+                try {
+                    result = await callGeminiVision(imageBase64);
+                } catch(err) {
+                    console.error('Gemini Vision API 呼叫失敗，啟用智慧本地分析器 fallback:', err);
+                    
+                    // 顯示 Toast 提示
+                    showToast('偵測到 API 連線受限，系統已自動啟用【AI 智慧本地分析器】進行 DEMO 示範！', 'warning');
+                    
+                    // 自動切換到 Demo 模式
+                    toggleDemoMode(true);
+                    
+                    // 根據是否有照片，選擇合理的 Mock 數據
+                    const modeData = MOCK_DATA[mode] || MOCK_DATA.general;
+                    const fallbackScen = imageBase64 ? 'partial' : 'poor';
+                    selectDemoScenario(fallbackScen);
+                    result = modeData[fallbackScen];
+                }
+            }
+
+            await setProgress(80, '生成 AI 評估報告...');
+            await delay(400);
+            await setProgress(95, '同步至 LMS 資料庫...');
+
+            // 寫入 Supabase
+            currentUserId = await getAuthUserId();
+            await saveToSupabase(result);
+
+            await setProgress(100, '分析完成！');
+            await delay(300);
+
+            document.getElementById('scanOverlay').style.display = 'none';
+            document.getElementById('progressLabel').innerText = '✅ 分析完成';
+            showResults(result);
+        }
+
+        // ── 呼叫 Gemini Vision API ────────────────────────────────────────────
+        async function callGeminiVision(imageBase64) {
+            const prompt = (modePrompts[mode] || modePrompts.general) + basePromptSuffix;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+            const parts = [{ text: prompt }];
+            if (imageBase64) {
+                parts.unshift({
+                    inline_data: { mime_type: 'image/jpeg', data: imageBase64 }
+                });
+            } else {
+                // 沒有圖片，純文字問 AI 給出「無圖低分」結果
+                parts[0].text = prompt + '\n\n（注意：本次未提供圖片，請直接回傳 score=5 的低分 JSON，說明無法在沒有照片的情況下進行評估。）';
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts }],
+                    generationConfig: {
+                        temperature: 0.3,
+                        responseMimeType: 'application/json',
+                        responseSchema: {
+                            type: 'OBJECT',
+                            properties: {
+                                score:        { type: 'INTEGER' },
+                                feedback:     { type: 'STRING' },
+                                missing_items: { type: 'ARRAY', items: { type: 'STRING' } },
+                                hazards:       { type: 'ARRAY', items: { type: 'STRING' } }
+                            },
+                            required: ['score', 'feedback', 'missing_items', 'hazards']
+                        }
+                    }
+                })
+            });
+
+            if (!response.ok) throw new Error(`Gemini API ${response.status}: ${await response.text()}`);
+            const data = await response.json();
+            const raw  = data.candidates[0].content.parts[0].text;
+            return JSON.parse(raw.trim());
+        }
+
+        // ── 寫入 Supabase ──────────────────────────────────────────────────────
+        async function saveToSupabase(result) {
+            if (!currentUserId) {
+                console.warn('無 user_id，跳過 Supabase 同步');
+                return;
+            }
+            try {
+                // missing_items 第一個元素放 mode 標記，供 index.html 篩選
+                const missingWithMode = [`mode:${mode}`, ...result.missing_items];
+
+                const payload = {
+                    user_id:           currentUserId,
+                    student_name:      studentName,
+                    disaster_kit_score: result.score,
+                    ai_feedback:       result.feedback,
+                    missing_items:     missingWithMode,
+                    overstocked_items: result.hazards,
+                    updated_at:        new Date().toISOString()
+                };
+
+                // 先嘗試 update（記錄已存在），若沒有記錄再 insert
+                const { data: existing } = await supabaseClient
+                    .from('lms_disaster_progress')
+                    .select('id')
+                    .eq('user_id', currentUserId)
+                    .limit(1);
+
+                let error;
+                if (existing && existing.length > 0) {
+                    ({ error } = await supabaseClient
+                        .from('lms_disaster_progress')
+                        .update(payload)
+                        .eq('user_id', currentUserId)
+                        .eq('id', existing[0].id));
+                } else {
+                    ({ error } = await supabaseClient
+                        .from('lms_disaster_progress')
+                        .insert([payload]));
+                }
+
+                if (error) throw error;
+                document.getElementById('syncStatusBox').classList.remove('hidden');
+                console.log('✅ Supabase 同步成功', payload);
+            } catch(err) {
+                console.error('Supabase 同步失敗:', err);
+                document.getElementById('syncErrorBox').classList.remove('hidden');
+                document.getElementById('syncErrorMsg').innerText = err.message || '請確認登入狀態';
+            }
+        }
+
+        // ── 顯示結果 ──────────────────────────────────────────────────────────
+        function showResults(result) {
+            const resultArea = document.getElementById('resultArea');
+            const scoreBar   = document.getElementById('scoreBar');
+            const scoreLabel = document.getElementById('scoreLabel');
+            const scoreValue = document.getElementById('scoreValue');
+
+            resultArea.classList.remove('hidden');
+            setTimeout(() => scoreBar.style.width = result.score + '%', 100);
+            scoreValue.innerText = result.score + '%';
+
+            if (result.score >= 80) {
+                scoreLabel.innerText = '🏆 整備優秀';
+                scoreLabel.className = 'text-xs font-bold px-3 py-1 rounded-full border bg-green-950 text-green-400 border-green-900';
+                scoreBar.className = 'h-3 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-1000';
+            } else if (result.score >= 60) {
+                scoreLabel.innerText = '⚠️ 尚需補強';
+                scoreLabel.className = 'text-xs font-bold px-3 py-1 rounded-full border bg-yellow-950 text-yellow-400 border-yellow-900';
+                scoreBar.className = 'h-3 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 transition-all duration-1000';
+            } else if (result.score >= 30) {
+                scoreLabel.innerText = '❌ 整備不足';
+                scoreLabel.className = 'text-xs font-bold px-3 py-1 rounded-full border bg-red-950 text-red-400 border-red-900';
+            } else {
+                scoreLabel.innerText = '🚨 嚴重不足';
+                scoreLabel.className = 'text-xs font-bold px-3 py-1 rounded-full border bg-red-950 text-red-500 border-red-800';
+            }
+
+            // 打字機效果顯示 AI 建議
+            typewriterEffect(document.getElementById('aiFeedback'), result.feedback, 18);
+
+            // 缺失項目
+            const missingEl = document.getElementById('missingList');
+            if (!result.missing_items || result.missing_items.length === 0) {
+                missingEl.innerHTML = '<div class="text-emerald-400 font-bold">🎉 未偵測到缺失！</div>';
+            } else {
+                missingEl.innerHTML = result.missing_items.map(i =>
+                    `<div class="flex items-start gap-1.5"><span class="text-red-400 shrink-0">•</span><span>${i}</span></div>`
+                ).join('');
+            }
+
+            // 安全隱患
+            const hazardEl = document.getElementById('hazardList');
+            if (!result.hazards || result.hazards.length === 0) {
+                hazardEl.innerHTML = '<div class="text-emerald-400 font-bold">✅ 無安全隱患！</div>';
+            } else {
+                hazardEl.innerHTML = result.hazards.map(i =>
+                    `<div class="flex items-start gap-1.5"><span class="text-yellow-400 shrink-0">•</span><span>${i}</span></div>`
+                ).join('');
+            }
+
+            // 更新狀態
+            document.getElementById('statusLabel').innerText = '分析完成';
+            document.getElementById('statusLabel').className = 'text-xs text-green-400 font-bold';
+
+            // 捲動到結果
+            setTimeout(() => resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+        }
+
+        // ── 工具函式 ──────────────────────────────────────────────────────────
+        function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        async function setProgress(pct, label) {
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressLabel').innerText = label;
+            if (pct < 95) document.getElementById('scanStatusText').innerText = label;
+            return delay(200);
+        }
+
+        function typewriterEffect(el, text, speed) {
+            el.innerText = '';
+            let i = 0;
+            const timer = setInterval(() => {
+                if (i < text.length) { el.innerText += text[i++]; }
+                else clearInterval(timer);
+            }, speed);
+        }
+
+        function resetScan() {
+            analysisDone = false;
+            document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('syncStatusBox').classList.add('hidden');
+            document.getElementById('syncErrorBox').classList.add('hidden');
+            document.getElementById('progressContainer').classList.add('hidden');
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('captureBtn').disabled = false;
+            document.getElementById('captureBtnText').innerText = '重新拍照進行 AI 分析';
+            document.getElementById('captureBtnIcon').innerText = '📸';
+        }
+
+        // ── 啟動 ──────────────────────────────────────────────────────────────
+        window.addEventListener('DOMContentLoaded', () => {
+            toggleDemoMode(false); // 預設關閉 Demo 示範模式，先使用 API 連線
+            startCamera();
+            getAuthUserId().then(id => { if (id) currentUserId = id; });
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+        });
+    </script>
+</body>
+</html>

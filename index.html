@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>防災學習大廳 - LMS 智慧中控台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .sidebar-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-white min-h-screen flex flex-col md:flex-row font-sans antialiased overflow-x-hidden">
+
+    <div
+        class="md:hidden w-full bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between no-select">
+        <div class="flex items-center gap-3">
+            <button onclick="setSidebarState(true)"
+                class="p-1.5 rounded-lg bg-slate-800 text-gray-300 hover:text-white cursor-pointer transition">
+                <span class="text-base font-bold block w-6 text-center">☰</span>
+            </button>
+            <div class="flex items-center gap-2 font-bold text-sm">
+                <span class="text-lg">🛡️</span>
+                <span class="text-blue-400 font-black">防災學習 LMS</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="sidebarOverlay" onclick="setSidebarState(false)"
+        class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
+
+    <aside id="sidebarNav"
+        class="fixed md:relative inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col shrink-0 no-select sidebar-transition z-50 -translate-x-full md:translate-x-0 shadow-2xl md:shadow-none">
+
+        <div class="flex items-center justify-between mb-6 pb-2 border-b border-slate-800/50">
+            <div id="sidebarTitle"
+                class="flex items-center gap-2 font-bold text-base overflow-hidden whitespace-nowrap pl-1 sidebar-transition opacity-100">
+                <span class="text-xl">🛡️</span>
+                <span class="text-blue-400 font-black">防災學習 LMS</span>
+            </div>
+            <button onclick="toggleSidebar()"
+                class="p-1.5 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition cursor-pointer"
+                title="收起/展開選單">
+                <span id="toggleBtnIcon" class="text-lg font-bold block w-6 text-center">✕</span>
+            </button>
+        </div>
+
+        <nav class="space-y-4 flex-1 overflow-y-auto pr-1" id="sidebarMenu">
+            <div>
+                <div
+                    class="sidebar-text text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 pl-2 sidebar-transition">
+                    主選單</div>
+                <a href="#"
+                    class="flex items-center gap-4 text-blue-400 bg-blue-950/40 p-2.5 rounded-xl border border-blue-900/30 whitespace-nowrap pl-2">
+                    <span class="text-lg shrink-0">🏠</span>
+                    <span class="sidebar-text text-sm font-semibold sidebar-transition">學習中控大廳</span>
+                </a>
+            </div>
+            <div>
+                <div
+                    class="sidebar-text text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 pl-2 sidebar-transition">
+                    實體備料</div>
+                <a href="calculator.html"
+                    class="flex items-center gap-4 text-gray-400 hover:text-purple-400 p-2.5 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                    <span class="text-lg shrink-0">🧮</span>
+                    <span class="sidebar-text text-sm sidebar-transition">智慧物資準備</span>
+                </a>
+            </div>
+            <div>
+                <div
+                    class="sidebar-text text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 pl-2 sidebar-transition">
+                    核心災害教室</div>
+                <div class="space-y-1">
+                    <a href="earthquake.html"
+                        class="flex items-center gap-4 text-gray-400 hover:text-blue-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2"><span
+                            class="text-lg shrink-0">🫨</span><span
+                            class="sidebar-text text-sm sidebar-transition">地震應變教室</span></a>
+                    <a href="typhoon.html"
+                        class="flex items-center gap-4 text-gray-400 hover:text-teal-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2"><span
+                            class="text-lg shrink-0">🌀</span><span
+                            class="sidebar-text text-sm sidebar-transition">颱洪整備教室</span></a>
+                    <a href="fire.html"
+                        class="flex items-center gap-4 text-gray-400 hover:text-red-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2"><span
+                            class="text-lg shrink-0">🔥</span><span
+                            class="sidebar-text text-sm sidebar-transition">火災安全逃生</span></a>
+                </div>
+            </div>
+            <div>
+                <div
+                    class="sidebar-text text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 pl-2 sidebar-transition">
+                    生活安全教室</div>
+                <div class="space-y-1">
+                    <a href="home-safety.html"
+                        class="flex items-center gap-4 text-gray-400 hover:text-yellow-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                        <span class="text-lg shrink-0">🚪</span><span
+                            class="sidebar-text text-sm sidebar-transition">居家綜合安全</span>
+                    </a>
+                    <a href="first-aid.html"
+                        class="flex items-center gap-4 text-gray-400 hover:text-emerald-400 p-2 rounded-xl hover:bg-slate-800 transition whitespace-nowrap pl-2">
+                        <span class="text-lg shrink-0">🚑</span><span
+                            class="sidebar-text text-sm sidebar-transition">民眾急救自救</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="border-t border-slate-800 pt-4 mt-auto overflow-hidden" id="sidebarFooter">
+            <div id="userEmailDisplay"
+                class="sidebar-text text-xs text-gray-400 mb-3 whitespace-nowrap overflow-hidden text-ellipsis pl-2 sidebar-transition">
+                🎓 學生：讀取中...</div>
+            <button onclick="logout()"
+                class="w-full text-left text-red-400 hover:text-red-300 text-sm font-bold flex items-center gap-4 p-2.5 rounded-xl transition pl-2 hover:bg-red-500/10">
+                <span class="text-lg shrink-0">🚪</span>
+                <span class="sidebar-text sidebar-transition">登出系統</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col min-h-screen">
+
+        <main class="flex-1 p-6 md:p-10 w-full">
+            <div class="max-w-7xl mx-auto w-full">
+
+                <header class="mb-8 border-b border-slate-800 pb-6 no-select px-4 md:px-0">
+                    <div class="flex items-center gap-3 mb-2 flex-wrap">
+                        <h1 class="text-3xl md:text-4xl font-black tracking-tight">智慧防災學習大廳</h1>
+                        <span
+                            class="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs px-2.5 py-1 rounded-md font-bold">消防署官方連動版</span>
+                    </div>
+                    <p class="text-gray-400 text-sm md:text-base">六大主題互動式數位教室樞紐・跨系統用戶生態帳號即時連動</p>
+                </header>
+
+                <div
+                    class="bg-slate-900/90 p-6 md:p-8 rounded-2xl border border-slate-800 shadow-xl mb-10 relative overflow-hidden">
+                    <div class="flex flex-col gap-8">
+
+                        <div
+                            class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-800/80 pb-6">
+                            <div class="no-select flex-1">
+                                <h2 class="text-lg md:text-xl font-extrabold text-blue-400 mb-1">📋 步驟一：家庭實體物資智慧盤點</h2>
+                                <p class="text-sm text-gray-400 mb-4">開啟 iOS App 掃描桌上實體物後，AI 回顧意見將會即時同步於下方</p>
+
+
+                            </div>
+                            <div
+                                class="w-full md:w-96 bg-slate-950/90 p-6 rounded-2xl border border-slate-800 text-center shadow-inner flex flex-col items-center justify-center">
+                                <h2 class="text-xs md:text-sm font-bold text-gray-400 mb-2 flex items-center gap-1.5">
+                                    <span class="text-green-400">✓</span> 實體包 App 掃描完成率
+                                </h2>
+                                <div class="flex items-baseline justify-center gap-1">
+                                    <div class="text-6xl md:text-7xl font-black text-emerald-400 tracking-tighter"
+                                        id="scoreDisplay">--</div>
+                                    <span class="text-2xl font-bold text-emerald-500/80 select-none">%</span>
+                                </div>
+                                <div
+                                    class="mt-2 text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> 實體包物資盤點完善
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div id="aiFeedbackContainer"
+                                class="lg:col-span-2 bg-slate-950/40 border border-slate-800/80 p-6 rounded-2xl flex flex-col min-h-[220px]">
+                                <div class="flex items-center gap-2.5 mb-4 no-select">
+                                    <span class="text-lg">💡</span>
+                                    <h3 class="text-base font-extrabold text-yellow-500 tracking-wide">AI 即時專家優化建議</h3>
+                                </div>
+                                <p id="aiFeedbackText"
+                                    class="text-sm md:text-base text-gray-300 leading-relaxed whitespace-pre-line flex-1 italic">
+                                    ⏳ 正在等待您開啟「緊急避難包 App」進行鏡頭拍照盤點。同步完成後，AI 健檢書報告將會實時呈現於此處。
+                                </p>
+                            </div>
+
+                            <div class="lg:col-span-1 flex flex-col gap-4">
+                                <div class="bg-red-950/10 border border-red-900/30 p-5 rounded-2xl shadow-md">
+                                    <span class="text-xs font-black text-red-400 block mb-3 uppercase tracking-wider">❌
+                                        缺失物資</span>
+                                    <div id="missingItemsList" class="text-sm text-gray-300 space-y-2">
+                                        <span class="text-gray-500 italic text-xs">無盤點紀錄</span>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-950/60 border border-slate-800/80 p-5 rounded-2xl shadow-md">
+                                    <span
+                                        class="text-xs font-black text-yellow-500 block mb-3 uppercase tracking-wider">📦
+                                        建議精簡之物資</span>
+                                    <div id="overstockedItemsList" class="text-sm text-gray-300 space-y-2">
+                                        <span class="text-gray-500 italic text-xs">無盤點紀錄</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <h2 class="text-sm font-bold text-gray-400 mb-5 uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-1 h-4 bg-orange-500 rounded-sm"></span> 智慧防災互動教室選擇
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div
+                        class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-blue-500/50 transition duration-300 shadow-md">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="text-3xl bg-slate-950 p-2.5 rounded-xl border border-slate-800 shadow-inner">🫨</span>
+                                <a href="earthquake.html"
+                                    class="text-xs font-bold text-blue-400 border border-blue-500/20 bg-blue-500/5 px-2.5 py-1 rounded-md hover:bg-blue-500/20 transition">進入教室
+                                    ➡️</a>
+                            </div>
+                            <h3 class="text-base font-black mb-2 tracking-wide">地震預防與應變教室</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">對齊內政部《防震手冊》。專攻瞬間避難、居家重型家具防震固定安裝與黃金決策。</p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-teal-500/50 transition duration-300 shadow-md">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="text-3xl bg-slate-950 p-2.5 rounded-xl border border-slate-800 shadow-inner">🌀</span>
+                                <a href="typhoon.html"
+                                    class="text-xs font-bold text-teal-400 border border-teal-500/20 bg-teal-500/5 px-2.5 py-1 rounded-md hover:bg-teal-500/20 transition">進入教室
+                                    ➡️</a>
+                            </div>
+                            <h3 class="text-base font-black mb-2 tracking-wide">颱洪整備教室</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">對齊《颱洪災害防救指引》。模擬強風豪雨門窗防護、強制撤離法規與土石流應變。</p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-red-500/50 transition duration-300 shadow-md">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="text-3xl bg-slate-950 p-2.5 rounded-xl border border-slate-800 shadow-inner">🔥</span>
+                                <a href="fire.html"
+                                    class="text-xs font-bold text-red-400 border border-red-500/20 bg-red-500/5 px-2.5 py-1 rounded-md hover:bg-red-500/20 transition">進入教室
+                                    ➡️</a>
+                            </div>
+                            <h3 class="text-base font-black mb-2 tracking-wide">火災安全逃生教室</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">對齊《火災預防與應變手冊》。學習住宅住警器安裝、用電安全管理與火災前預防盤點。</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <footer class="mt-auto border-t border-slate-900 bg-slate-950 px-6 py-6 no-select">
+            <div
+                class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+                <div class="flex flex-col items-center md:items-start gap-1">
+                    <div class="font-bold text-gray-400">🛡️ 智慧防災數位聯動學習系統 (LMS Platform)</div>
+                    <div>© 2026 國立臺南大學數位學習科技學系・專題技術發表</div>
+                </div>
+                <div class="flex items-center gap-4 text-[11px]">
+                    <div class="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-md border border-slate-800">
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
+                        <span class="text-gray-400">Supabase Realtime: 連線中</span>
+                    </div>
+                    <div class="text-gray-600">系統版本 v2.4.0-Prod</div>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://ovyygcsuiwwbgoywplbq.supabase.co';
+        const supabaseKey = 'sb_publishable_Rfekybrmzpc7rjaHAq5Q8Q_ChnHYcAI';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let testUserId = null;
+        let isSidebarExpanded = false;
+
+        // 🌟 核心修正一：老黃指定的 O2O 個人化跳轉隔離函式（點擊時強迫向 Supabase 重新重撈當前 Auth，斷絕舊快取變數沾黏）
+        async function startMobileAIScan() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (!session) {
+                alert("登入 Session 已過期，請重新登入！");
+                window.location.href = 'register.html';
+                return;
+            }
+
+            // 即時讀取本次 Session 真正的 UUID
+            const freshUserId = session.user.id;
+            let currentStudentName = "黃瀚霆";
+
+            // 即時抓取畫面上最新被渲染出來的學生真實姓名
+            const nameDisplay = document.getElementById('userEmailDisplay');
+            if (nameDisplay && nameDisplay.innerText.includes("🎓 學生：")) {
+                const extractedName = nameDisplay.innerText.replace("🎓 學生：", "").trim();
+                if (extractedName && extractedName !== "讀取中..." && extractedName !== "未知學生") {
+                    currentStudentName = extractedName;
+                }
+            }
+
+            // 進行中文字元安全 URL 轉碼
+            const encodedName = encodeURIComponent(currentStudentName);
+
+            // 完美拼接符合老黃要求的安全 URL Scheme
+            const targetSchemeUrl = `disasterlms://scan?user_id=${freshUserId}&name=${encodedName}`;
+
+            // 💡 打印控制台以供查驗，切換帳號時 user_id= 後方絕對會跟著改變
+            console.log("【發射跳轉 URL 檢查點】:", targetSchemeUrl);
+
+            window.location.href = targetSchemeUrl;
+        }
+
+        function setSidebarState(expand) {
+            const sidebar = document.getElementById('sidebarNav');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggleIcon = document.getElementById('toggleBtnIcon');
+
+            const isMobile = window.innerWidth < 768;
+
+            if (isMobile) {
+                if (expand) {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    overlay.classList.remove('hidden');
+                    setTimeout(() => overlay.classList.add('opacity-100'), 10);
+                    if (toggleIcon) toggleIcon.innerText = '✕';
+                    isSidebarExpanded = true;
+                } else {
+                    sidebar.classList.remove('translate-x-0');
+                    sidebar.classList.add('-translate-x-full');
+                    overlay.classList.remove('opacity-100');
+                    setTimeout(() => overlay.classList.add('hidden'), 300);
+                    if (toggleIcon) toggleIcon.innerText = '☰';
+                    isSidebarExpanded = false;
+                }
+            } else {
+                if (!expand) {
+                    sidebar.classList.remove('md:w-64');
+                    sidebar.classList.add('md:w-16');
+                    if (toggleIcon) toggleIcon.innerText = '☰';
+                    document.querySelectorAll('.sidebar-text').forEach(el => el.classList.add('opacity-0', 'pointer-events-none'));
+                    isSidebarExpanded = false;
+                } else {
+                    sidebar.classList.remove('md:w-16');
+                    sidebar.classList.add('md:w-64');
+                    if (toggleIcon) toggleIcon.innerText = '✕';
+                    document.querySelectorAll('.sidebar-text').forEach(el => el.classList.remove('opacity-0', 'pointer-events-none'));
+                    isSidebarExpanded = true;
+                }
+            }
+        }
+
+        function toggleSidebar() { setSidebarState(!isSidebarExpanded); }
+
+        // 行動端流暢滑動手勢
+        let touchStartX = 0; let touchStartY = 0;
+        window.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+        window.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].screenX; const touchEndY = e.changedTouches[0].screenY;
+            const deltaX = touchEndX - touchStartX; const deltaY = touchEndY - touchStartY;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 60) {
+                if (deltaX > 0 && touchStartX < 60) { setSidebarState(true); }
+                else if (deltaX < 0 && isSidebarExpanded) { setSidebarState(false); }
+            }
+        }, { passive: true });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                document.getElementById('sidebarNav').classList.remove('-translate-x-full', 'translate-x-0');
+                document.getElementById('sidebarOverlay').classList.add('hidden');
+                setSidebarState(true);
+            } else { setSidebarState(false); }
+        });
+
+        async function init() {
+            if (window.innerWidth >= 768) { setSidebarState(true); } else { setSidebarState(false); }
+
+            // 先嘗試用本地的 localStorage 立即顯示姓名，防止讀取延遲
+            const localName = localStorage.getItem('studentName');
+            if (localName) {
+                const el = document.getElementById('userEmailDisplay');
+                if (el) el.innerText = `🎓 學生：${localName}`;
+            }
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'register.html'; return; }
+            testUserId = session.user.id;
+
+            // 同步最新 metadata 至 localStorage 與側邊欄
+            if (session.user) {
+                const displayName = session.user.user_metadata.display_name || session.user.email.split('@')[0];
+                localStorage.setItem('studentName', displayName);
+                const el = document.getElementById('userEmailDisplay');
+                if (el) el.innerText = `🎓 學生：${displayName}`;
+            }
+
+            fetchLatestProgress();
+            setInterval(fetchLatestProgress, 2000);
+
+            supabaseClient
+                .channel('lms_realtime_dashboard')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lms_disaster_progress' }, (payload) => {
+                    updateUI(payload.new);
+                })
+                .subscribe();
+        }
+
+        async function fetchLatestProgress() {
+            let { data } = await supabaseClient
+                .from('lms_disaster_progress').select('*').eq('user_id', testUserId).order('updated_at', { ascending: false }).limit(20);
+
+            if (!data || data.length === 0) {
+                const { data: globalData } = await supabaseClient
+                    .from('lms_disaster_progress').select('*').order('updated_at', { ascending: false }).limit(20);
+                data = globalData;
+            }
+            if (data && data.length > 0) {
+                // 📂 篩選邏輯：只抓取屬於防災包 (home-safety 或無標籤) 的記錄，避免其他教室掃描結果干擾主頁
+                const defaultRow = data.find(row => {
+                    let missingArray = [];
+                    if (Array.isArray(row.missing_items)) { missingArray = row.missing_items; }
+                    else if (typeof row.missing_items === 'string' && row.missing_items.trim() !== '') {
+                        try { missingArray = JSON.parse(row.missing_items); } catch (e) { }
+                    }
+                    const firstItem = missingArray[0] || "";
+                    return !firstItem.startsWith("mode:") || firstItem === "mode:home-safety";
+                });
+
+                updateUI(defaultRow || data[0]);
+            }
+        }
+
+        function updateUI(data) {
+            const displayName = data.student_name || "黃瀚霆";
+            document.getElementById('userEmailDisplay').innerText = `🎓 學生：${displayName}`;
+            document.getElementById('scoreDisplay').innerText = (data.disaster_kit_score !== null) ? data.disaster_kit_score : 0;
+            document.getElementById('aiFeedbackText').innerText = data.ai_feedback || "App 同步完成，AI 正在整理健檢建議...";
+
+            const mList = document.getElementById('missingItemsList');
+            const oList = document.getElementById('overstockedItemsList');
+
+            let missingArray = [];
+            if (Array.isArray(data.missing_items)) { missingArray = data.missing_items; }
+            else if (typeof data.missing_items === 'string' && data.missing_items.trim() !== '') {
+                try { missingArray = JSON.parse(data.missing_items); } catch (e) { missingArray = data.missing_items.split(','); }
+            }
+
+            // 🛡️ 過濾 mode: 標籤，不顯示於前端缺少物資清單中
+            missingArray = missingArray.filter(item => !item.startsWith("mode:"));
+
+            if (mList) {
+                mList.innerHTML = (missingArray.length > 0)
+                    ? missingArray.map(item => `<div class="bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-xl text-red-300 font-semibold text-xs md:text-sm shadow-sm">• ${item}</div>`).join('')
+                    : `<div class="text-emerald-400 font-bold italic text-sm flex items-center gap-1">🎉 實體物資非常充足！</div>`;
+            }
+
+            let overstockedArray = [];
+            if (Array.isArray(data.overstocked_items)) { overstockedArray = data.overstocked_items; }
+            else if (typeof data.overstocked_items === 'string' && data.overstocked_items.trim() !== '') {
+                try { overstockedArray = JSON.parse(data.overstocked_items); } catch (e) { overstockedArray = data.overstocked_items.split(','); }
+            }
+            if (oList) {
+                oList.innerHTML = (overstockedArray.length > 0)
+                    ? overstockedArray.map(item => `<div class="bg-slate-950 border border-slate-800/80 px-3 py-1.5 rounded-xl text-yellow-400/90 font-semibold text-xs md:text-sm shadow-sm">• ${item}</div>`).join('')
+                    : `<div class="text-gray-400 italic text-sm flex items-center gap-1">🍂 避難包很精簡，沒有贅物</div>`;
+            }
+        }
+
+        // 🌟 核心修正二：點擊登出時進行「全域變數緩存大清洗」與帳號徹底隔離
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = 'register.html';
+        }
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>
